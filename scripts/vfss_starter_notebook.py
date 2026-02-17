@@ -17,7 +17,7 @@ warnings.filterwarnings("ignore")
 # -------------------------
 # User config
 # -------------------------
-VIDEO_DIR = "videos"            # folder with .avi files
+VIDEO_DIR = r"\\research.drive.wisc.edu\npconnor\ADStudy\VF AD Blinded\Early Tongue Training"           # folder with .avi files
 EVENT_CSV = "event_table.csv"   # original base-1 CSV with possible 'x' or '?'
 OUTPUT_DIR = "outputs"          # where cleaned csv, clips, plots go
 CLIP_PAD = 30                   # frames before/after event to extract for inspection
