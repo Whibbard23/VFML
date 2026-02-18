@@ -4,7 +4,7 @@ generate_randomized_crops.py
 Reads:  event_csvs/cleaned_events.csv  (columns: video, before_onset, touch_ues, leave_ues)
 Writes:
   - data/base_windows.csv
-  - data/crops/<train|val>/crop_<id>/frame_0000.png ... (grayscale)
+  - data/crops/<train|val>/crop_<id>/frame_0000.jpg ... (grayscale)
   - data/manifests/crops_manifest.csv  (metadata + labels)
   - data/manifests/train_videos.txt, val_videos.txt
 
@@ -172,10 +172,15 @@ def extract_windows_sequential(video_path, windows):
       - corrupt video detection
       - directory existence checks
       - write-failure detection
-      - safe clamping
+      - slow-IO detection
+      - frame heartbeat
+      - per-video start/finish logs
     """
 
+    import time
+
     video_path = Path(video_path)
+    print(f"\n[START] Extracting {len(windows)} crops from {video_path.name}")
 
     if not video_path.exists():
         raise FileNotFoundError(f"Video not found: {video_path}")
@@ -202,7 +207,7 @@ def extract_windows_sequential(video_path, windows):
     if not ret or test_frame is None:
         cap.release()
         raise IOError(
-            f"Video {video_path.name} opens but cannot decode frames "
+            f"[CORRUPT] {video_path.name} opens but cannot decode frames "
             f"(corrupt file or unsupported codec)."
         )
 
@@ -247,6 +252,10 @@ def extract_windows_sequential(video_path, windows):
     win_idx = 0
     active = []
 
+    last_time = time.time()
+    heartbeat_interval = 300  # frames
+    slow_io_threshold = 5     # seconds per interval
+
     for f in range(total_frames):
         ret, frame = cap.read()
         if not ret:
@@ -258,13 +267,27 @@ def extract_windows_sequential(video_path, windows):
             active.append(valid_windows[win_idx])
             win_idx += 1
 
+        # -------------------------
+        # Heartbeat + slow IO detection
+        # -------------------------
+        if f % heartbeat_interval == 0:
+            now = time.time()
+            dt = now - last_time
+            print(f"[{video_path.name}] frame {f}/{total_frames} | active windows: {len(active)}")
+            if dt > slow_io_threshold:
+                print(f"[SLOW IO] {video_path.name} took {dt:.1f}s for {heartbeat_interval} frames")
+            last_time = now
+
+        # -------------------------
+        # Write active windows
+        # -------------------------
         if active:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             still_active = []
 
             for w in active:
                 if f <= w['end']:
-                    out_path = w['out_dir'] / f"frame_{w['next_write_index']:04d}.png"
+                    out_path = w['out_dir'] / f"frame_{w['next_write_index']:04d}.jpg"
 
                     # Ensure directory exists
                     if not w['out_dir'].exists():
@@ -274,7 +297,7 @@ def extract_windows_sequential(video_path, windows):
                             raise IOError(f"Failed to recreate directory {w['out_dir']}: {ex}")
 
                     # Write frame safely
-                    ok = cv2.imwrite(str(out_path), gray)
+                    ok = cv2.imwrite(str(out_path), gray, [cv2.IMWRITE_JPEG_QUALITY, 95])
                     if not ok:
                         raise IOError(
                             f"cv2.imwrite failed for {out_path}\n"
@@ -291,6 +314,8 @@ def extract_windows_sequential(video_path, windows):
             break
 
     cap.release()
+    print(f"[DONE] Finished extracting {video_path.name}")
+
 
 
 # -------------------------
