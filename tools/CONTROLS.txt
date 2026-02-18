@@ -1,0 +1,64 @@
+===========================================
+ANNOTATION TOOL CONTROLS (ROI + EVENT)
+===========================================
+
+GENERAL
+-------
+q / ESC        Quit (auto-saves JSON)
+s              Save current frame/event
+n              Save + next frame/event
+N              Save + next video
+b              Go back one slot/event
+p              Jump to last saved frame for this slot
+
+DISPLAY & WINDOW
+----------------
+Window auto-scales based on DISPLAY_SCALE.
+Scaling does NOT affect ROI coordinates.
+
+<              Display previous sequential frame (frame_index - 1)
+>              Display next sequential frame (frame_index + 1)
+
+FRAME MANAGEMENT
+----------------
+r              Reject current frame and replace with a new non-black frame
+u              Undo last replacement (return to previous frame)
+p              Return to last saved frame for this slot
+
+ROI SELECTION
+-------------
+Mouse drag     Move active ROI box
+Tab / 1        Switch to mouth ROI
+2              Switch to UES ROI
+
+Arrow keys     Move ROI by 1 pixel
+WASD           Move ROI by 1 pixel (same as arrows)
+Space          Toggle nudge between 1 and 10 pixels
+
++ / =          Increase ROI size (temporary)
+- / _          Decrease ROI size (temporary)
+
+VISIBILITY & FLAGS
+------------------
+v              Cycle visibility: visible → partial → not_visible
+f              Toggle bolus_present in mouth flag (EVENT annotator only)
+g              Toggle bolus_present in mouth flag (EVENT annotator only)
+
+ON-SCREEN INFO
+--------------
+Top-left text shows:
+- video name
+- current frame index
+- total frames
+- active ROI box
+- visibility state
+- bolus flag (EVENT annotator)
+
+NOTES
+-----
+• ROI size is locked to canonical width/height at save.
+• Display scaling does NOT affect ROI coordinates.
+• Sequential stepping (<, >) updates the slot’s frame index and persists it.
+• All saves immediately update the JSON and slot maps.
+• Event annotator expands each swallow into:
+    before_onset, touch_ues, leave_ues

@@ -1,0 +1,3272 @@
+{
+  "AD128.avi": [
+    {
+      "event_id": "before_onset",
+      "frame_index": 79,
+      "mouth": [
+        185,
+        452,
+        128,
+        128
+      ],
+      "ues": [
+        332,
+        527,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:07:47.771415Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 353,
+      "mouth": [
+        220,
+        491,
+        128,
+        128
+      ],
+      "ues": [
+        357,
+        539,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:46:05.595063Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 547,
+      "mouth": [
+        521,
+        247,
+        128,
+        128
+      ],
+      "ues": [
+        525,
+        384,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:46:16.555693Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 697,
+      "mouth": [
+        197,
+        426,
+        128,
+        128
+      ],
+      "ues": [
+        338,
+        509,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:46:24.864773Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 843,
+      "mouth": [
+        391,
+        231,
+        128,
+        128
+      ],
+      "ues": [
+        448,
+        376,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:46:34.896907Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 1046,
+      "mouth": [
+        319,
+        258,
+        128,
+        128
+      ],
+      "ues": [
+        412,
+        363,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:46:47.011974Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 1217,
+      "mouth": [
+        389,
+        386,
+        128,
+        128
+      ],
+      "ues": [
+        474,
+        515,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:47:36.346375Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 1293,
+      "mouth": [
+        353,
+        422,
+        128,
+        128
+      ],
+      "ues": [
+        466,
+        522,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:47:44.057316Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 1414,
+      "mouth": [
+        288,
+        600,
+        128,
+        128
+      ],
+      "ues": [
+        425,
+        678,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:47:56.438613Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 1515,
+      "mouth": [
+        380,
+        402,
+        128,
+        128
+      ],
+      "ues": [
+        460,
+        530,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:48:01.195592Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 2038,
+      "mouth": [
+        257,
+        498,
+        128,
+        128
+      ],
+      "ues": [
+        384,
+        588,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:51:19.349685Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 2215,
+      "mouth": [
+        350,
+        281,
+        128,
+        128
+      ],
+      "ues": [
+        413,
+        421,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:51:47.396758Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 2657,
+      "mouth": [
+        257,
+        97,
+        128,
+        128
+      ],
+      "ues": [
+        364,
+        230,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:52:10.154794Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 2774,
+      "mouth": [
+        241,
+        526,
+        128,
+        128
+      ],
+      "ues": [
+        355,
+        636,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:54:35.766484Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 2958,
+      "mouth": [
+        228,
+        454,
+        128,
+        128
+      ],
+      "ues": [
+        320,
+        578,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:54:40.614009Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 3114,
+      "mouth": [
+        221,
+        472,
+        128,
+        128
+      ],
+      "ues": [
+        327,
+        573,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:56:44.114530Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 3229,
+      "mouth": [
+        236,
+        444,
+        128,
+        128
+      ],
+      "ues": [
+        351,
+        610,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:57:07.941130Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 3463,
+      "mouth": [
+        257,
+        460,
+        128,
+        128
+      ],
+      "ues": [
+        356,
+        616,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:57:19.802367Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 3605,
+      "mouth": [
+        276,
+        586,
+        128,
+        128
+      ],
+      "ues": [
+        381,
+        708,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:57:38.600139Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 3736,
+      "mouth": [
+        103,
+        492,
+        128,
+        128
+      ],
+      "ues": [
+        240,
+        598,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:58:32.398158Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 3854,
+      "mouth": [
+        234,
+        526,
+        128,
+        128
+      ],
+      "ues": [
+        347,
+        625,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:58:48.881014Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 3967,
+      "mouth": [
+        312,
+        428,
+        128,
+        128
+      ],
+      "ues": [
+        337,
+        588,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:59:08.959037Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 4029,
+      "mouth": [
+        272,
+        534,
+        128,
+        128
+      ],
+      "ues": [
+        383,
+        672,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:59:35.547746Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 4082,
+      "mouth": [
+        272,
+        534,
+        128,
+        128
+      ],
+      "ues": [
+        383,
+        672,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:59:45.629232Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 4153,
+      "mouth": [
+        322,
+        603,
+        128,
+        128
+      ],
+      "ues": [
+        420,
+        728,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:00:17.864993Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 4563,
+      "mouth": [
+        285,
+        597,
+        128,
+        128
+      ],
+      "ues": [
+        378,
+        726,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:00:21.695115Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 4921,
+      "mouth": [
+        256,
+        440,
+        128,
+        128
+      ],
+      "ues": [
+        360,
+        550,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:00:42.220396Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 5065,
+      "mouth": [
+        322,
+        587,
+        128,
+        128
+      ],
+      "ues": [
+        437,
+        708,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:01:06.631188Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 5343,
+      "mouth": [
+        394,
+        498,
+        128,
+        128
+      ],
+      "ues": [
+        477,
+        624,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:01:30.561551Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 5714,
+      "mouth": [
+        418,
+        430,
+        128,
+        128
+      ],
+      "ues": [
+        471,
+        586,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:01:39.545457Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 99,
+      "mouth": [
+        210,
+        449,
+        128,
+        128
+      ],
+      "ues": [
+        356,
+        531,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:45:58.431593Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 385,
+      "mouth": [
+        220,
+        491,
+        128,
+        128
+      ],
+      "ues": [
+        357,
+        539,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:46:10.826571Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 716,
+      "mouth": [
+        197,
+        426,
+        128,
+        128
+      ],
+      "ues": [
+        338,
+        509,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:46:28.324495Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 879,
+      "mouth": [
+        259,
+        445,
+        128,
+        128
+      ],
+      "ues": [
+        362,
+        530,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:46:43.164166Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 1086,
+      "mouth": [
+        224,
+        415,
+        128,
+        128
+      ],
+      "ues": [
+        384,
+        515,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:47:03.326160Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 1259,
+      "mouth": [
+        386,
+        359,
+        128,
+        128
+      ],
+      "ues": [
+        456,
+        521,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:47:39.194412Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 1554,
+      "mouth": [
+        346,
+        566,
+        128,
+        128
+      ],
+      "ues": [
+        447,
+        675,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:50:51.837777Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 2262,
+      "mouth": [
+        204,
+        178,
+        128,
+        128
+      ],
+      "ues": [
+        406,
+        438,
+        128,
+        128
+      ],
+      "visibility": "not_visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:51:57.766555Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 2987,
+      "mouth": [
+        231,
+        456,
+        128,
+        128
+      ],
+      "ues": [
+        329,
+        587,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:54:48.511674Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 3150,
+      "mouth": [
+        221,
+        472,
+        128,
+        128
+      ],
+      "ues": [
+        327,
+        573,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:56:46.368025Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 3265,
+      "mouth": [
+        258,
+        532,
+        128,
+        128
+      ],
+      "ues": [
+        356,
+        619,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:57:15.949087Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 3499,
+      "mouth": [
+        257,
+        460,
+        128,
+        128
+      ],
+      "ues": [
+        356,
+        616,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:57:25.917341Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 3645,
+      "mouth": [
+        152,
+        508,
+        128,
+        128
+      ],
+      "ues": [
+        278,
+        594,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:58:30.668621Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 3899,
+      "mouth": [
+        234,
+        526,
+        128,
+        128
+      ],
+      "ues": [
+        330,
+        626,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:58:56.380875Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 4013,
+      "mouth": [
+        289,
+        531,
+        128,
+        128
+      ],
+      "ues": [
+        383,
+        672,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:59:24.801613Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 4083,
+      "mouth": [
+        272,
+        534,
+        128,
+        128
+      ],
+      "ues": [
+        383,
+        672,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:59:55.414778Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 4122,
+      "mouth": [
+        254,
+        540,
+        128,
+        128
+      ],
+      "ues": [
+        370,
+        670,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:00:12.100081Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 4580,
+      "mouth": [
+        212,
+        563,
+        128,
+        128
+      ],
+      "ues": [
+        340,
+        705,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:00:28.965044Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 4947,
+      "mouth": [
+        330,
+        546,
+        128,
+        128
+      ],
+      "ues": [
+        442,
+        681,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:00:48.855646Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 5096,
+      "mouth": [
+        346,
+        695,
+        128,
+        128
+      ],
+      "ues": [
+        478,
+        759,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:01:08.601805Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 5380,
+      "mouth": [
+        347,
+        553,
+        128,
+        128
+      ],
+      "ues": [
+        461,
+        670,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:01:34.839382Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 5746,
+      "mouth": [
+        400,
+        525,
+        128,
+        128
+      ],
+      "ues": [
+        486,
+        611,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:01:52.436809Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 95,
+      "mouth": [
+        197,
+        451,
+        128,
+        128
+      ],
+      "ues": [
+        351,
+        527,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:45:55.475146Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 370,
+      "mouth": [
+        220,
+        491,
+        128,
+        128
+      ],
+      "ues": [
+        357,
+        539,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:46:08.691291Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 705,
+      "mouth": [
+        197,
+        426,
+        128,
+        128
+      ],
+      "ues": [
+        338,
+        509,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:46:26.893426Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 858,
+      "mouth": [
+        391,
+        231,
+        128,
+        128
+      ],
+      "ues": [
+        448,
+        376,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:46:38.179551Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 1059,
+      "mouth": [
+        283,
+        398,
+        128,
+        128
+      ],
+      "ues": [
+        404,
+        520,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:46:56.365061Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 1229,
+      "mouth": [
+        386,
+        378,
+        128,
+        128
+      ],
+      "ues": [
+        470,
+        503,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:47:37.758710Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 1309,
+      "mouth": [
+        313,
+        537,
+        128,
+        128
+      ],
+      "ues": [
+        435,
+        617,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:47:51.242363Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 1532,
+      "mouth": [
+        347,
+        482,
+        128,
+        128
+      ],
+      "ues": [
+        459,
+        601,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:50:26.870057Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 2229,
+      "mouth": [
+        350,
+        281,
+        128,
+        128
+      ],
+      "ues": [
+        406,
+        438,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:51:50.630506Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 2672,
+      "mouth": [
+        488,
+        153,
+        128,
+        128
+      ],
+      "ues": [
+        491,
+        295,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:53:13.596029Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 2971,
+      "mouth": [
+        228,
+        454,
+        128,
+        128
+      ],
+      "ues": [
+        320,
+        578,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:54:43.262620Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 3127,
+      "mouth": [
+        221,
+        472,
+        128,
+        128
+      ],
+      "ues": [
+        327,
+        573,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:56:44.643221Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 3249,
+      "mouth": [
+        252,
+        501,
+        128,
+        128
+      ],
+      "ues": [
+        356,
+        619,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:57:13.080306Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 3477,
+      "mouth": [
+        257,
+        460,
+        128,
+        128
+      ],
+      "ues": [
+        356,
+        616,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:57:22.046353Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 3618,
+      "mouth": [
+        218,
+        542,
+        128,
+        128
+      ],
+      "ues": [
+        352,
+        645,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:57:43.671873Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 3756,
+      "mouth": [
+        185,
+        472,
+        128,
+        128
+      ],
+      "ues": [
+        278,
+        590,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:58:38.576198Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 3873,
+      "mouth": [
+        234,
+        526,
+        128,
+        128
+      ],
+      "ues": [
+        330,
+        626,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:58:52.645451Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 3984,
+      "mouth": [
+        284,
+        452,
+        128,
+        128
+      ],
+      "ues": [
+        362,
+        606,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:59:16.440481Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 4050,
+      "mouth": [
+        272,
+        534,
+        128,
+        128
+      ],
+      "ues": [
+        383,
+        672,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T21:59:40.065948Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 4102,
+      "mouth": [
+        254,
+        540,
+        128,
+        128
+      ],
+      "ues": [
+        370,
+        670,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:00:09.448841Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 4575,
+      "mouth": [
+        212,
+        563,
+        128,
+        128
+      ],
+      "ues": [
+        340,
+        705,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:00:25.581916Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 4936,
+      "mouth": [
+        273,
+        494,
+        128,
+        128
+      ],
+      "ues": [
+        409,
+        628,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:00:45.409750Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 5080,
+      "mouth": [
+        331,
+        587,
+        128,
+        128
+      ],
+      "ues": [
+        448,
+        709,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:01:07.353268Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 5361,
+      "mouth": [
+        364,
+        508,
+        128,
+        128
+      ],
+      "ues": [
+        461,
+        629,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:01:31.006728Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 5727,
+      "mouth": [
+        398,
+        463,
+        128,
+        128
+      ],
+      "ues": [
+        486,
+        611,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:01:44.426084Z"
+    }
+  ],
+  "__event_slot_map__": {
+    "AD128.avi": {
+      "0": 79,
+      "1": 95,
+      "2": 99,
+      "3": 353,
+      "4": 370,
+      "5": 385,
+      "6": 547,
+      "7": 697,
+      "8": 705,
+      "9": 716,
+      "10": 843,
+      "11": 858,
+      "12": 879,
+      "13": 1046,
+      "14": 1059,
+      "15": 1086,
+      "16": 1217,
+      "17": 1229,
+      "18": 1259,
+      "19": 1293,
+      "20": 1309,
+      "21": 1414,
+      "22": 1515,
+      "23": 1532,
+      "24": 1554,
+      "25": 2038,
+      "26": 2215,
+      "27": 2229,
+      "28": 2262,
+      "29": 2657,
+      "30": 2672,
+      "31": 2774,
+      "32": 2958,
+      "33": 2971,
+      "34": 2987,
+      "35": 3114,
+      "36": 3127,
+      "37": 3150,
+      "38": 3229,
+      "39": 3249,
+      "40": 3265,
+      "41": 3463,
+      "42": 3477,
+      "43": 3499,
+      "44": 3605,
+      "45": 3618,
+      "46": 3645,
+      "47": 3736,
+      "48": 3756,
+      "49": 3854,
+      "50": 3873,
+      "51": 3899,
+      "52": 3967,
+      "53": 3984,
+      "54": 4013,
+      "55": 4029,
+      "56": 4050,
+      "57": 4082,
+      "58": 4083,
+      "59": 4102,
+      "60": 4122,
+      "61": 4153,
+      "62": 4563,
+      "63": 4575,
+      "64": 4580,
+      "65": 4921,
+      "66": 4936,
+      "67": 4947,
+      "68": 5065,
+      "69": 5080,
+      "70": 5096,
+      "71": 5343,
+      "72": 5361,
+      "73": 5380,
+      "74": 5714,
+      "75": 5727,
+      "76": 5746
+    },
+    "AD146.avi": {
+      "0": 580,
+      "1": 607,
+      "2": 738,
+      "3": 753,
+      "4": 781,
+      "5": 942,
+      "6": 1043,
+      "7": 1081,
+      "8": 1208,
+      "9": 1221,
+      "10": 1315,
+      "11": 1329,
+      "12": 1357,
+      "13": 1430,
+      "14": 1446,
+      "15": 1467,
+      "16": 2005,
+      "17": 2020,
+      "18": 2366,
+      "19": 2389,
+      "20": 2409,
+      "21": 2649,
+      "22": 2663,
+      "23": 2696,
+      "24": 3237,
+      "25": 3253,
+      "26": 3274,
+      "27": 3416,
+      "28": 3431,
+      "29": 3462,
+      "30": 3673,
+      "31": 3693,
+      "32": 3930,
+      "33": 3944,
+      "34": 3971,
+      "35": 4172,
+      "36": 4205,
+      "37": 4223
+    },
+    "AD151.avi": {
+      "0": 436,
+      "1": 451,
+      "2": 462,
+      "3": 731,
+      "4": 744,
+      "5": 768,
+      "6": 940,
+      "7": 952,
+      "8": 984,
+      "9": 1135,
+      "10": 1148,
+      "11": 1175,
+      "12": 1272,
+      "13": 1288,
+      "14": 1367,
+      "15": 1410,
+      "16": 1432,
+      "17": 1471,
+      "18": 1554,
+      "19": 1569,
+      "20": 1773,
+      "21": 1794,
+      "22": 1835,
+      "23": 1913,
+      "24": 1954,
+      "25": 1985,
+      "26": 2052,
+      "27": 2066,
+      "28": 2119,
+      "29": 2258,
+      "30": 2274,
+      "31": 2313,
+      "32": 2386
+    }
+  },
+  "AD146.avi": [
+    {
+      "event_id": "before_onset",
+      "frame_index": 580,
+      "mouth": [
+        575,
+        75,
+        128,
+        128
+      ],
+      "ues": [
+        598,
+        218,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:08:22.512356Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 738,
+      "mouth": [
+        356,
+        189,
+        128,
+        128
+      ],
+      "ues": [
+        446,
+        329,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:09:12.915726Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 942,
+      "mouth": [
+        244,
+        505,
+        128,
+        128
+      ],
+      "ues": [
+        371,
+        597,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:09:37.066102Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 1208,
+      "mouth": [
+        633,
+        85,
+        128,
+        128
+      ],
+      "ues": [
+        623,
+        225,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:09:59.226388Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 1315,
+      "mouth": [
+        322,
+        448,
+        128,
+        128
+      ],
+      "ues": [
+        422,
+        557,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:10:31.803520Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 1430,
+      "mouth": [
+        251,
+        380,
+        128,
+        128
+      ],
+      "ues": [
+        376,
+        488,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:12:33.679744Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 2005,
+      "mouth": [
+        678,
+        40,
+        128,
+        128
+      ],
+      "ues": [
+        742,
+        213,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:12:38.742758Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 2366,
+      "mouth": [
+        226,
+        445,
+        128,
+        128
+      ],
+      "ues": [
+        349,
+        548,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:12:46.145821Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 2649,
+      "mouth": [
+        352,
+        490,
+        128,
+        128
+      ],
+      "ues": [
+        439,
+        631,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:12:52.348669Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 3237,
+      "mouth": [
+        200,
+        496,
+        128,
+        128
+      ],
+      "ues": [
+        324,
+        617,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:13:02.477168Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 3416,
+      "mouth": [
+        300,
+        531,
+        128,
+        128
+      ],
+      "ues": [
+        379,
+        654,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:13:14.916147Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 3673,
+      "mouth": [
+        218,
+        554,
+        128,
+        128
+      ],
+      "ues": [
+        350,
+        660,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:13:50.298202Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 3930,
+      "mouth": [
+        393,
+        444,
+        128,
+        128
+      ],
+      "ues": [
+        451,
+        574,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:14:03.244654Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 4172,
+      "mouth": [
+        214,
+        505,
+        128,
+        128
+      ],
+      "ues": [
+        352,
+        638,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:14:40.674844Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 607,
+      "mouth": [
+        350,
+        541,
+        128,
+        128
+      ],
+      "ues": [
+        469,
+        619,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:08:56.179535Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 781,
+      "mouth": [
+        178,
+        254,
+        128,
+        128
+      ],
+      "ues": [
+        339,
+        344,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:09:28.139494Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 1081,
+      "mouth": [
+        291,
+        367,
+        128,
+        128
+      ],
+      "ues": [
+        372,
+        510,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:09:53.895032Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 1357,
+      "mouth": [
+        556,
+        317,
+        128,
+        128
+      ],
+      "ues": [
+        568,
+        434,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:12:29.524970Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 1467,
+      "mouth": [
+        297,
+        391,
+        128,
+        128
+      ],
+      "ues": [
+        393,
+        505,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:12:37.074974Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 2409,
+      "mouth": [
+        306,
+        533,
+        128,
+        128
+      ],
+      "ues": [
+        420,
+        624,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:12:49.859371Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 2696,
+      "mouth": [
+        499,
+        467,
+        128,
+        128
+      ],
+      "ues": [
+        544,
+        597,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:12:54.836663Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 3274,
+      "mouth": [
+        230,
+        490,
+        128,
+        128
+      ],
+      "ues": [
+        329,
+        617,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:13:10.277011Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 3462,
+      "mouth": [
+        307,
+        527,
+        128,
+        128
+      ],
+      "ues": [
+        387,
+        655,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:13:22.638117Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 3971,
+      "mouth": [
+        393,
+        444,
+        128,
+        128
+      ],
+      "ues": [
+        451,
+        574,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:14:06.182574Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 4223,
+      "mouth": [
+        270,
+        497,
+        128,
+        128
+      ],
+      "ues": [
+        373,
+        635,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:14:54.747975Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 753,
+      "mouth": [
+        325,
+        203,
+        128,
+        128
+      ],
+      "ues": [
+        440,
+        352,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:09:18.581320Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 1043,
+      "mouth": [
+        217,
+        210,
+        128,
+        128
+      ],
+      "ues": [
+        355,
+        318,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:09:45.274254Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 1221,
+      "mouth": [
+        505,
+        144,
+        128,
+        128
+      ],
+      "ues": [
+        570,
+        286,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:10:03.839478Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 1329,
+      "mouth": [
+        332,
+        443,
+        128,
+        128
+      ],
+      "ues": [
+        438,
+        549,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:12:28.458485Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 1446,
+      "mouth": [
+        293,
+        379,
+        128,
+        128
+      ],
+      "ues": [
+        391,
+        496,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:12:35.906547Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 2020,
+      "mouth": [
+        637,
+        58,
+        128,
+        128
+      ],
+      "ues": [
+        726,
+        229,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:12:43.570592Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 2389,
+      "mouth": [
+        297,
+        495,
+        128,
+        128
+      ],
+      "ues": [
+        414,
+        604,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:12:47.579153Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 2663,
+      "mouth": [
+        352,
+        490,
+        128,
+        128
+      ],
+      "ues": [
+        439,
+        631,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:12:53.388675Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 3253,
+      "mouth": [
+        200,
+        496,
+        128,
+        128
+      ],
+      "ues": [
+        324,
+        617,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:13:04.859625Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 3431,
+      "mouth": [
+        307,
+        531,
+        128,
+        128
+      ],
+      "ues": [
+        387,
+        655,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:13:19.226238Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 3693,
+      "mouth": [
+        196,
+        513,
+        128,
+        128
+      ],
+      "ues": [
+        329,
+        601,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:13:55.730241Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 3944,
+      "mouth": [
+        393,
+        444,
+        128,
+        128
+      ],
+      "ues": [
+        451,
+        574,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:14:04.373542Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 4205,
+      "mouth": [
+        256,
+        497,
+        128,
+        128
+      ],
+      "ues": [
+        373,
+        635,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:14:47.346373Z"
+    }
+  ],
+  "AD151.avi": [
+    {
+      "event_id": "before_onset",
+      "frame_index": 436,
+      "mouth": [
+        388,
+        479,
+        128,
+        128
+      ],
+      "ues": [
+        466,
+        635,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:15:23.004164Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 731,
+      "mouth": [
+        347,
+        382,
+        128,
+        128
+      ],
+      "ues": [
+        435,
+        589,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:15:34.067383Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 940,
+      "mouth": [
+        357,
+        437,
+        128,
+        128
+      ],
+      "ues": [
+        440,
+        583,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:16:05.669351Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 1135,
+      "mouth": [
+        340,
+        458,
+        128,
+        128
+      ],
+      "ues": [
+        438,
+        590,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:16:19.842797Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 1272,
+      "mouth": [
+        450,
+        529,
+        128,
+        128
+      ],
+      "ues": [
+        546,
+        660,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:16:55.077946Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 1367,
+      "mouth": [
+        270,
+        508,
+        128,
+        128
+      ],
+      "ues": [
+        428,
+        592,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:17:39.335962Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 1410,
+      "mouth": [
+        282,
+        507,
+        128,
+        128
+      ],
+      "ues": [
+        444,
+        581,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:17:42.224250Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 1554,
+      "mouth": [
+        453,
+        508,
+        128,
+        128
+      ],
+      "ues": [
+        558,
+        631,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:18:16.453342Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 1773,
+      "mouth": [
+        288,
+        454,
+        128,
+        128
+      ],
+      "ues": [
+        423,
+        596,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:18:31.509610Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 1913,
+      "mouth": [
+        237,
+        537,
+        128,
+        128
+      ],
+      "ues": [
+        412,
+        672,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:18:50.586891Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 2052,
+      "mouth": [
+        339,
+        481,
+        128,
+        128
+      ],
+      "ues": [
+        458,
+        636,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:19:36.499732Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 2258,
+      "mouth": [
+        321,
+        494,
+        128,
+        128
+      ],
+      "ues": [
+        418,
+        638,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:19:51.400204Z"
+    },
+    {
+      "event_id": "before_onset",
+      "frame_index": 2386,
+      "mouth": [
+        396,
+        662,
+        128,
+        128
+      ],
+      "ues": [
+        511,
+        753,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": false,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:20:08.398379Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 462,
+      "mouth": [
+        366,
+        502,
+        128,
+        128
+      ],
+      "ues": [
+        475,
+        640,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:15:25.285956Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 768,
+      "mouth": [
+        285,
+        418,
+        128,
+        128
+      ],
+      "ues": [
+        430,
+        592,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:15:43.828701Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 984,
+      "mouth": [
+        299,
+        472,
+        128,
+        128
+      ],
+      "ues": [
+        412,
+        571,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:16:14.262851Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 1175,
+      "mouth": [
+        257,
+        432,
+        128,
+        128
+      ],
+      "ues": [
+        408,
+        565,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:16:37.414146Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 1471,
+      "mouth": [
+        396,
+        620,
+        128,
+        128
+      ],
+      "ues": [
+        548,
+        725,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:17:54.301464Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 1835,
+      "mouth": [
+        288,
+        454,
+        128,
+        128
+      ],
+      "ues": [
+        423,
+        596,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:18:40.854024Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 1985,
+      "mouth": [
+        319,
+        466,
+        128,
+        128
+      ],
+      "ues": [
+        431,
+        638,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:19:05.383136Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 2119,
+      "mouth": [
+        213,
+        533,
+        128,
+        128
+      ],
+      "ues": [
+        364,
+        665,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:19:46.807000Z"
+    },
+    {
+      "event_id": "leave_ues",
+      "frame_index": 2313,
+      "mouth": [
+        321,
+        494,
+        128,
+        128
+      ],
+      "ues": [
+        418,
+        638,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:19:55.964384Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 451,
+      "mouth": [
+        366,
+        502,
+        128,
+        128
+      ],
+      "ues": [
+        475,
+        640,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:15:24.076030Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 744,
+      "mouth": [
+        337,
+        410,
+        128,
+        128
+      ],
+      "ues": [
+        435,
+        589,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:15:37.694010Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 952,
+      "mouth": [
+        301,
+        457,
+        128,
+        128
+      ],
+      "ues": [
+        412,
+        571,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:16:10.436531Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 1148,
+      "mouth": [
+        251,
+        429,
+        128,
+        128
+      ],
+      "ues": [
+        408,
+        565,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:16:35.958353Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 1288,
+      "mouth": [
+        493,
+        536,
+        128,
+        128
+      ],
+      "ues": [
+        546,
+        660,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": true,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:17:02.118369Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 1432,
+      "mouth": [
+        320,
+        546,
+        128,
+        128
+      ],
+      "ues": [
+        475,
+        602,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:17:45.196963Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 1569,
+      "mouth": [
+        437,
+        590,
+        128,
+        128
+      ],
+      "ues": [
+        573,
+        689,
+        128,
+        128
+      ],
+      "visibility": "partial",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:18:22.230201Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 1794,
+      "mouth": [
+        288,
+        454,
+        128,
+        128
+      ],
+      "ues": [
+        423,
+        596,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:18:38.292423Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 1954,
+      "mouth": [
+        237,
+        537,
+        128,
+        128
+      ],
+      "ues": [
+        415,
+        653,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:19:00.629337Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 2066,
+      "mouth": [
+        333,
+        495,
+        128,
+        128
+      ],
+      "ues": [
+        458,
+        636,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:19:41.783014Z"
+    },
+    {
+      "event_id": "touch_ues",
+      "frame_index": 2274,
+      "mouth": [
+        321,
+        494,
+        128,
+        128
+      ],
+      "ues": [
+        418,
+        638,
+        128,
+        128
+      ],
+      "visibility": "visible",
+      "bolus_mouth_present": false,
+      "bolus_ues_present": true,
+      "annotator": "annotator",
+      "saved_at": "2026-02-18T22:19:53.232926Z"
+    }
+  ]
+}

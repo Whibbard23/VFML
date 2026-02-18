@@ -1,33 +1,16 @@
 """
 event_roi_annotator.py
+event_roi_annotator.py
 
 Event-aligned ROI annotator.
 
 Usage:
     python event_roi_annotator.py events.csv --videos-dir /path/to/videos --out event_rois.json
 
-Controls (keystrokes):
-  - Mouse drag: move the active rectangle
-  - Tab or '1' / '2': switch active box (mouth=1, ues=2)
-  - Arrow keys / WASD: nudge active box by 1 (space toggles 10)
-  - +/- : increase/decrease active box size (temporary only)
-  - v : cycle visibility (visible -> partial -> not_visible)
-  - r : reject current frame and replace with a new non-black frame
-  - u : undo last replacement for current slot
-  - p : return to the last saved frame for this slot (if any)
-  - b : go back one event (opens saved frame if present)
-  - > / < : sequential next / previous frame (updates slot)
-  - B : toggle bolus_present flag (visible on screen)
-  - s : save current event's annotation (canonical size enforced)
-  - n : save and advance to next event
-  - N : save and advance to next video
-  - q or ESC : quit (saves JSON automatically)
 """
-
 import csv
 import cv2
 import json
-import argparse
 from pathlib import Path
 import sys
 import math
@@ -35,15 +18,30 @@ import random
 from datetime import datetime
 
 # -------------------------
+# Hardcoded paths (edit if needed)
+# -------------------------
+# Script is expected to live in tools/; these defaults point to repo root siblings.
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent
+
+EVENTS_CSV = Path(r"C:\Users\Connor Lab\Desktop\VFML\event_csvs\cleaned_events.csv")
+VIDEOS_DIR = Path(r"\\research.drive.wisc.edu\npconnor\ADStudy\VF AD Blinded\Early Tongue Training")
+OUT_JSON = REPO_ROOT / "event_rois.json"
+
+
+print("EVENTS_CSV:", EVENTS_CSV, "exists:", EVENTS_CSV.exists(), "is_file:", EVENTS_CSV.is_file())
+print("VIDEOS_DIR:", VIDEOS_DIR, "exists:", VIDEOS_DIR.exists(), "is_dir:", VIDEOS_DIR.is_dir())
+print("OUT_JSON:", OUT_JSON, "parent exists:", OUT_JSON.parent.exists())
+
+# -------------------------
 # Defaults and thresholds
 # -------------------------
 DEFAULT_WIDTH = 128
 DEFAULT_HEIGHT = 128
-DEFAULT_OUT = "event_rois.json"
-MIN_FRAME_SKIP = 10
+MIN_FRAME_SKIP = 5
 BLACK_MEAN_THRESHOLD = 10.0
 REPLACEMENT_MAX_TRIES = 500
-DISPLAY_SCALE = 3.0
+DISPLAY_SCALE = 5.0
 SCREEN_MARGIN = 80
 
 VISIBILITY_STATES = ["visible", "partial", "not_visible"]
@@ -63,67 +61,49 @@ def save_json(path: Path, data):
     path.write_text(json.dumps(data, indent=2))
 
 # -------------------------
-# Path resolution helpers
-# -------------------------
-def resolve_input_path(user_path: str) -> Path:
-    """
-    Resolve a user-supplied path robustly:
-      1. If absolute and exists -> use it
-      2. If relative and exists relative to cwd -> use it
-      3. If script is inside tools/, try parent (repo root) / user_path
-      4. Try script directory / user_path
-      5. Return Path(user_path) (may not exist) so caller can handle
-    """
-    p = Path(user_path)
-    if p.is_absolute() and p.exists():
-        return p.resolve()
-    # cwd relative
-    cwd_candidate = Path.cwd() / user_path
-    if cwd_candidate.exists():
-        return cwd_candidate.resolve()
-    # try relative to script parent (two levels up if in tools/)
-    try:
-        script_dir = Path(__file__).resolve().parent
-    except Exception:
-        script_dir = Path.cwd()
-    # try repo root (parent of tools) then script dir
-    repo_root = script_dir.parent
-    cand = repo_root / user_path
-    if cand.exists():
-        return cand.resolve()
-    cand2 = script_dir / user_path
-    if cand2.exists():
-        return cand2.resolve()
-    # fallback: return the cwd candidate (even if not exists) so caller can show helpful error
-    return Path(user_path)
-
-# -------------------------
 # Event loader
 # -------------------------
-def load_events(csv_path: Path, video_col="video", event_col="event_id", frame_col="frame_index"):
-    events = []
-    if not csv_path.exists():
-        raise FileNotFoundError(f"Events CSV not found: {csv_path}")
+def load_events(csv_path: Path):
+    """
+    Load cleaned_events.csv where each row contains:
+        video, before_onset, touch_ues, leave_ues
+
+    Expand each row into THREE events:
+        event_id = before_onset / touch_ues / leave_ues
+        frame_index = integer frame number
+    """
+    events_by_video = {}
+
     with open(csv_path, newline='') as fh:
         reader = csv.DictReader(fh)
         for r in reader:
-            if video_col not in r or event_col not in r or frame_col not in r:
-                continue
-            try:
-                frame_idx = int(r[frame_col])
-            except Exception:
-                continue
-            events.append({
-                "video": r[video_col],
-                "event_id": r[event_col],
-                "frame_index": frame_idx,
-                "meta": r
-            })
-    # group by video, preserve order
-    events_by_video = {}
-    for e in events:
-        events_by_video.setdefault(e["video"], []).append(e)
-    return events_by_video
+            video = r["video"]
+
+            # Expand each event type
+            for event_name in ("before_onset", "touch_ues", "leave_ues"):
+                raw_val = r.get(event_name, "")
+                if raw_val is None or raw_val == "":
+                    continue
+                try:
+                    frame_idx = int(raw_val)
+                except:
+                    continue
+
+                events_by_video.setdefault(video, []).append({
+                    "video": video,
+                    "event_id": event_name,
+                    "frame_index": frame_idx,
+                    "meta": r
+                })
+
+
+    # Sort events chronologically for each video
+        for v in events_by_video:
+            events_by_video[v] = sorted(events_by_video[v], key=lambda e: e["frame_index"])
+
+        return events_by_video
+
+
 
 # -------------------------
 # Event annotator
@@ -132,7 +112,7 @@ class EventAnnotator:
     def __init__(self, video_path: Path, events: list, rois_dict: dict, out_path: Path,
                  canonical_w=DEFAULT_WIDTH, canonical_h=DEFAULT_HEIGHT):
         self.video_path = video_path
-        self.events = events  # list of event dicts for this video
+        self.events = events
         self.rois = rois_dict
         self.out_path = Path(out_path)
         self.canonical_w = int(canonical_w)
@@ -147,28 +127,20 @@ class EventAnnotator:
         self.frame_display = None
         self.total_frames = 0
 
-        # per-event slot mapping: list of frame indices (one per event)
         self.sampled_indices = []
         self.current_event_idx = 0
-
-        # per-slot history for undo
         self.slot_history = {}
-
-        # last saved frame per slot (event)
         self.last_saved_frame = {}
 
-        # two boxes
         self.boxes = {
             "mouth": {"x": 0, "y": 0, "w": self.canonical_w, "h": self.canonical_h},
             "ues": {"x": 0, "y": 0, "w": self.canonical_w, "h": self.canonical_h}
         }
         self.active_box = "mouth"
         self.visibility = "visible"
+        self.bolus_mouth_present = {}
+        self.bolus_ues_present = {}
 
-        # bolus flag per slot
-        self.bolus_present = {}
-
-        # prepare video and sampling
         self._open_video()
         self._load_persisted_event_slot_map()
         self._init_slots()
@@ -224,7 +196,6 @@ class EventAnnotator:
     # Persistence: event slot map
     # -------------------------
     def _load_persisted_event_slot_map(self):
-        # __event_slot_map__ : { video_name: { event_id: frame_index, ... } }
         slot_map = self.rois.get("__event_slot_map__", {})
         self.persisted_map = slot_map.get(self.video_path.name, {}) if isinstance(slot_map, dict) else {}
 
@@ -232,10 +203,9 @@ class EventAnnotator:
         try:
             if "__event_slot_map__" not in self.rois or not isinstance(self.rois["__event_slot_map__"], dict):
                 self.rois["__event_slot_map__"] = {}
-            # build mapping event_id -> frame for this video
             mapping = {}
             for i, ev in enumerate(self.events):
-                mapping[ev["event_id"]] = int(self.sampled_indices[i])
+                mapping[str(i)] = int(self.sampled_indices[i])
             self.rois["__event_slot_map__"][self.video_path.name] = mapping
             save_json(self.out_path, self.rois)
         except Exception:
@@ -245,33 +215,55 @@ class EventAnnotator:
     # Slot initialization
     # -------------------------
     def _init_slots(self):
-        # initialize sampled_indices from persisted map or event frame_index
+        slot_key = str(len(self.sampled_indices)-1)
+        if slot_key in self.persisted_map:
+            idx = int(self.persisted_map[slot_key])
         self.sampled_indices = []
         for ev in self.events:
             eid = ev["event_id"]
-            if eid in self.persisted_map:
-                idx = int(self.persisted_map[eid])
+            if str(len(self.sampled_indices)) in self.persisted_map:
+                idx = int(self.persisted_map[str(len(self.sampled_indices))])
+
             else:
                 idx = int(ev["frame_index"])
                 if idx < MIN_FRAME_SKIP and self.total_frames > MIN_FRAME_SKIP:
                     idx = MIN_FRAME_SKIP
             self.sampled_indices.append(idx)
             self.slot_history.setdefault(len(self.sampled_indices)-1, [])
-            # load bolus flag if present in rois for this event
-            existing = self._find_saved_entry_for_event(ev["event_id"])
-            if existing:
-                self.bolus_present[len(self.sampled_indices)-1] = bool(existing.get("bolus_present", False))
-                self.last_saved_frame[len(self.sampled_indices)-1] = int(existing.get("frame_index"))
-            else:
-                self.bolus_present[len(self.sampled_indices)-1] = False
+            slot = len(self.sampled_indices)-1
 
-    def _find_saved_entry_for_event(self, event_id):
+            existing = self._find_saved_entry_for_event(ev["event_id"], idx)
+
+            if existing:
+                self.bolus_mouth_present[slot] = bool(existing.get("bolus_mouth_present", False))
+                self.bolus_ues_present[slot]   = bool(existing.get("bolus_ues_present", False))
+                self.last_saved_frame[slot]    = int(existing.get("frame_index"))
+            else:
+                # Apply event-type dependent defaults for unsaved slots
+                self._apply_event_defaults(ev["event_id"], slot)
+
+
+
+    def _find_saved_entry_for_event(self, event_id, frame_index=None):
+        """
+        Return the saved entry for the given event_id and optional frame_index
+        for the current video. If frame_index is provided, require both to match.
+        """
         key = self.video_path.name
-        if key in self.rois:
-            for e in self.rois.get(key, []):
-                if str(e.get("event_id")) == str(event_id):
-                    return e
+        entries = self.rois.get(key, [])
+        for e in entries:
+            try:
+                if frame_index is not None:
+                    if int(e.get("frame_index", -1)) == int(frame_index) and str(e.get("event_id")).strip() == str(event_id).strip():
+                        return e
+                else:
+                    if str(e.get("event_id")).strip() == str(event_id).strip():
+                        return e
+            except Exception:
+                continue
         return None
+
+
 
     # -------------------------
     # Frame loading and UI init
@@ -290,7 +282,6 @@ class EventAnnotator:
         ret, frame = cap.read()
         cap.release()
         if not ret or frame is None:
-            # fallback: try first non-black after MIN_FRAME_SKIP
             found = None
             for i in range(MIN_FRAME_SKIP, min(self.total_frames, MIN_FRAME_SKIP + 200)):
                 cap = cv2.VideoCapture(str(self.video_path))
@@ -315,11 +306,18 @@ class EventAnnotator:
         self._update_window_size()
 
     def _init_from_saved(self):
-        # load saved ROIs for current event frame if present
+        """
+        Restore boxes, visibility, and bolus flags from saved JSON entry for the
+        current slot/frame. If no saved entry exists, do not write anything;
+        caller may apply in-memory defaults separately.
+        """
         key = self.video_path.name
         cur_frame = int(self.sampled_indices[self.current_event_idx])
+        found_saved = False
+
         if key in self.rois:
             for e in self.rois.get(key, []):
+                # match both frame index and event id
                 if int(e.get("frame_index")) == cur_frame and str(e.get("event_id")) == str(self.events[self.current_event_idx]["event_id"]):
                     if "mouth" in e:
                         x, y, w, h = e["mouth"]
@@ -329,9 +327,23 @@ class EventAnnotator:
                         self.boxes["ues"].update({"x": int(x), "y": int(y), "w": int(w), "h": int(h)})
                     if "visibility" in e:
                         self.visibility = e.get("visibility", self.visibility)
-                    self.bolus_present[self.current_event_idx] = bool(e.get("bolus_present", False))
+
+                    # Load saved bolus flags (if present)
+                    self.bolus_mouth_present[self.current_event_idx] = bool(e.get("bolus_mouth_present", False))
+                    self.bolus_ues_present[self.current_event_idx]   = bool(e.get("bolus_ues_present", False))
+
+                    # Mark this slot as having a saved frame
                     self.last_saved_frame[self.current_event_idx] = cur_frame
+                    found_saved = True
                     break
+
+        # If no saved entry was found, do not write to disk here.
+        # Caller may apply in-memory defaults if desired:
+        if not found_saved:
+            # ensure keys exist so UI code can read them safely
+            self.bolus_mouth_present.setdefault(self.current_event_idx, False)
+            self.bolus_ues_present.setdefault(self.current_event_idx, False)
+
 
     # -------------------------
     # Drawing and UI
@@ -395,16 +407,53 @@ class EventAnnotator:
 
         cur_frame = self.sampled_indices[self.current_event_idx]
         ev = self.events[self.current_event_idx]
-        bolus = self.bolus_present.get(self.current_event_idx, False)
-        bolus_txt = "BOLUS: PRESENT" if bolus else "BOLUS: ABSENT"
-        bolus_color = (0, 200, 255) if bolus else (180, 180, 180)
+        slot = self.current_event_idx
+        mouth_flag = self.bolus_mouth_present.get(slot, False)
+        ues_flag = self.bolus_ues_present.get(slot, False)
+
+        # Color-coded indicators
+        mouth_color = (0, 255, 0) # green
+        ues_color = (255, 0, 0) # blue
+
+        bolus_txt = f"Mouth bolus: {'YES' if mouth_flag else 'NO'}    |     UES bolus: {'YES' if ues_flag else 'NO'}"
 
         txt = f"{self.video_path.name}  event={ev['event_id']}  frame={cur_frame}/{self.total_frames-1}  vis={self.visibility}  active={self.active_box}"
         cv2.putText(self.frame_display, txt, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255), 2)
-        cv2.putText(self.frame_display, bolus_txt, (10, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.7, bolus_color, 3)
+        slot = self.current_event_idx
+        mouth_flag = self.bolus_mouth_present.get(slot, False)
+        ues_flag   = self.bolus_ues_present.get(slot, False)
+
+        # Colors
+        mouth_color = (0, 255, 0)   # green
+        ues_color   = (255, 0, 0)   # blue
+
+        # Draw color-coded bolus indicators
+        cv2.putText(self.frame_display,
+            f"Mouth bolus: {'YES' if mouth_flag else 'NO'}",
+            (10, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.7, mouth_color, 3)
+
+        cv2.putText(self.frame_display,
+            f"UES bolus: {'YES' if ues_flag else 'NO'}",
+            (10, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.7, ues_color, 3)
+
         cv2.putText(self.frame_display, "Tab/1/2 switch | +/- resize | v visibility | r reject | u undo | p saved | b back | < > step | B bolus | n next | N next video | s save | q quit",
-                    (10, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200,200,200), 1)
+                    (10, 105), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200,200,200), 1)
         cv2.imshow(self.window_name, self.frame_display)
+
+    def _apply_event_defaults(self, event_id: str, slot: int):
+        # Normalize event id
+        eid = str(event_id).lower()
+        if eid == "before_onset":
+            self.bolus_mouth_present[slot] = True
+            self.bolus_ues_present[slot] = False
+        elif eid in ("touch_ues", "leave_ues"):
+            self.bolus_mouth_present[slot] = False
+            self.bolus_ues_present[slot] = True
+        else:
+            self.bolus_mouth_present[slot] = False
+            self.bolus_ues_present[slot] = False
+
+
 
     # -------------------------
     # Mouse callback
@@ -434,7 +483,6 @@ class EventAnnotator:
         cur_frame = int(self.sampled_indices[self.current_event_idx])
         mouth_box = dict(self.boxes["mouth"])
         ues_box = dict(self.boxes["ues"])
-        # enforce canonical and center
         for box in (mouth_box, ues_box):
             cx = box["x"] + box["w"] // 2
             cy = box["y"] + box["h"] // 2
@@ -450,29 +498,40 @@ class EventAnnotator:
             "mouth": [int(mouth_box["x"]), int(mouth_box["y"]), int(mouth_box["w"]), int(mouth_box["h"])],
             "ues": [int(ues_box["x"]), int(ues_box["y"]), int(ues_box["w"]), int(ues_box["h"])],
             "visibility": self.visibility,
-            "bolus_present": bool(self.bolus_present.get(self.current_event_idx, False)),
-            "annotator": "annotator",  # change if you want to record user
+            "bolus_mouth_present": bool(self.bolus_mouth_present.get(self.current_event_idx, False)),
+            "bolus_ues_present":   bool(self.bolus_ues_present.get(self.current_event_idx, False)),
+            "annotator": "annotator",
             "saved_at": datetime.utcnow().isoformat() + "Z"
         }
 
         entries = self.rois.get(key, [])
         replaced = False
         for i, e in enumerate(entries):
-            if str(e.get("event_id")) == entry["event_id"]:
-                entries[i] = entry
-                replaced = True
-                break
+            try:
+                if str(e.get("event_id")).strip() == entry["event_id"].strip() and int(e.get("frame_index", -1)) == int(entry["frame_index"]):
+                    entries[i] = entry
+                    replaced = True
+                    break
+            except Exception:
+                continue
         if not replaced:
             entries.append(entry)
+
+        # Keep entries deterministic and easy to inspect
         entries = sorted(entries, key=lambda x: (str(x.get("event_id")), int(x.get("frame_index", 0))))
         self.rois[key] = entries
 
-        # record last saved frame for this slot
+        # Mark this slot as having a saved frame and persist the slot map
         self.last_saved_frame[self.current_event_idx] = int(cur_frame)
-
-        # persist slot map as well
         self._persist_event_slot_map()
-        print(f"[SAVED] {key} event {entry['event_id']} frame {cur_frame} bolus={entry['bolus_present']}")
+
+        print(
+            f"[SAVED] {key} event {entry['event_id']} frame {cur_frame} "
+            f"mouth_bolus={entry['bolus_mouth_present']} "
+            f"ues_bolus={entry['bolus_ues_present']}"
+        )
+
+
 
     # -------------------------
     # Main interactive loop
@@ -480,7 +539,15 @@ class EventAnnotator:
     def run(self):
         cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
         cv2.setMouseCallback(self.window_name, self.on_mouse)
+
+        # Ensure the window is scaled based on the *already loaded* first frame
+        try:
+            self._update_window_size()
+        except Exception:
+            pass
+
         self.draw()
+
         while True:
             key = cv2.waitKey(0) & 0xFF
             if key == 27 or key == ord('q'):
@@ -514,24 +581,23 @@ class EventAnnotator:
             elif key == ord(' '):
                 self.nudge = 10 if self.nudge == 1 else 1
                 print(f"[INFO] nudge set to {self.nudge}")
-            elif key in (81,):  # left arrow
+            elif key in (81,):
                 self.boxes[self.active_box]["x"] -= self.nudge
                 self._clamp_box(self.boxes[self.active_box])
                 self.draw()
-            elif key in (83,):  # right arrow
+            elif key in (83,):
                 self.boxes[self.active_box]["x"] += self.nudge
                 self._clamp_box(self.boxes[self.active_box])
                 self.draw()
-            elif key in (82,):  # up arrow
+            elif key in (82,):
                 self.boxes[self.active_box]["y"] -= self.nudge
                 self._clamp_box(self.boxes[self.active_box])
                 self.draw()
-            elif key in (84,):  # down arrow
+            elif key in (84,):
                 self.boxes[self.active_box]["y"] += self.nudge
                 self._clamp_box(self.boxes[self.active_box])
                 self.draw()
 
-            # reject current frame and replace with a new non-black frame
             elif key == ord('r'):
                 slot = self.current_event_idx
                 old_idx = self.sampled_indices[slot]
@@ -539,7 +605,6 @@ class EventAnnotator:
                 if new_idx is not None:
                     self.slot_history.setdefault(slot, []).append(old_idx)
                     self.sampled_indices[slot] = new_idx
-                    # persist mapping
                     self._persist_event_slot_map()
                     print(f"[INFO] Replaced slot {slot} frame {old_idx} -> {new_idx}")
                     self._load_frame_at(new_idx)
@@ -548,7 +613,6 @@ class EventAnnotator:
                 else:
                     print("[WARN] No replacement found")
 
-            # undo replacement
             elif key == ord('u'):
                 slot = self.current_event_idx
                 history = self.slot_history.get(slot, [])
@@ -564,7 +628,6 @@ class EventAnnotator:
                 else:
                     print("[INFO] No history to undo")
 
-            # return to last saved frame for this slot
             elif key == ord('p'):
                 slot = self.current_event_idx
                 saved = self.last_saved_frame.get(slot)
@@ -583,7 +646,6 @@ class EventAnnotator:
                 else:
                     print("[INFO] No saved frame for this slot")
 
-            # sequential next frame (display + update slot)
             elif key == ord('>'):
                 slot = self.current_event_idx
                 cur = int(self.sampled_indices[slot])
@@ -596,7 +658,6 @@ class EventAnnotator:
                 self._init_from_saved()
                 self.draw()
 
-            # sequential previous frame (display + update slot)
             elif key == ord('<'):
                 slot = self.current_event_idx
                 cur = int(self.sampled_indices[slot])
@@ -609,14 +670,21 @@ class EventAnnotator:
                 self._init_from_saved()
                 self.draw()
 
-            # toggle bolus flag
-            elif key == ord('B'):
+            # Toggle mouth bolus
+            elif key == ord('f'):
                 slot = self.current_event_idx
-                self.bolus_present[slot] = not bool(self.bolus_present.get(slot, False))
-                print(f"[INFO] bolus_present -> {self.bolus_present[slot]}")
+                self.bolus_mouth_present[slot] = not self.bolus_mouth_present.get(slot, False)
+                print(f"[INFO] bolus_mouth_present -> {self.bolus_mouth_present[slot]}")
                 self.draw()
 
-            # go back one event slot
+            # Toggle UES bolus
+            elif key == ord('g'):
+                slot = self.current_event_idx
+                self.bolus_ues_present[slot] = not self.bolus_ues_present.get(slot, False)
+                print(f"[INFO] bolus_ues_present -> {self.bolus_ues_present[slot]}")
+                self.draw()
+
+
             elif key == ord('b'):
                 if self.current_event_idx > 0:
                     prev_slot = self.current_event_idx - 1
@@ -645,7 +713,6 @@ class EventAnnotator:
                 self.draw()
 
             elif key == ord('n'):
-                # save and advance to next event
                 self.save_current_event()
                 if self.current_event_idx + 1 < len(self.sampled_indices):
                     self.current_event_idx += 1
@@ -665,61 +732,44 @@ class EventAnnotator:
         cv2.destroyWindow(self.window_name)
 
 # -------------------------
-# Main CLI
+# Main (no CLI args)
 # -------------------------
 def main():
-    parser = argparse.ArgumentParser(description="Event-aligned ROI annotator")
-    parser.add_argument("events_csv", help="CSV of cleaned events (columns: video,event_id,frame_index)")
-    parser.add_argument("--videos-dir", default=".", help="Directory containing videos (or absolute paths in CSV)")
-    parser.add_argument("--video-col", default="video", help="CSV column name for video path")
-    parser.add_argument("--event-col", default="event_id", help="CSV column name for event id")
-    parser.add_argument("--frame-col", default="frame_index", help="CSV column name for frame index")
-    parser.add_argument("--width", type=int, default=DEFAULT_WIDTH, help="Canonical ROI width")
-    parser.add_argument("--height", type=int, default=DEFAULT_HEIGHT, help="Canonical ROI height")
-    parser.add_argument("--out", default=DEFAULT_OUT, help="Output JSON file for ROIs")
-    args = parser.parse_args()
+    print("Event ROI annotator (no args).")
+    print(f"Events CSV: {EVENTS_CSV}")
+    print(f"Videos dir: {VIDEOS_DIR}")
+    print(f"Output JSON: {OUT_JSON}")
 
-    # Resolve events CSV robustly (script may live in tools/)
-    events_csv_path = resolve_input_path(args.events_csv)
-    if not events_csv_path.exists():
-        # try relative to provided videos-dir (common case)
-        alt = Path(args.videos_dir) / args.events_csv
-        if alt.exists():
-            events_csv_path = alt.resolve()
-    if not events_csv_path.exists():
-        print(f"[ERROR] Events CSV not found: {args.events_csv}")
-        print("Tried:", args.events_csv, "cwd:", Path.cwd(), "script parent:", Path(__file__).resolve().parent)
+    if not EVENTS_CSV.exists():
+        print(f"[ERROR] Events CSV not found at {EVENTS_CSV}")
         return
-
-    events_by_video = load_events(events_csv_path, video_col=args.video_col, event_col=args.event_col, frame_col=args.frame_col)
+    events_by_video = load_events(EVENTS_CSV)
     if not events_by_video:
-        print("No events loaded. Check CSV and column names.")
+        print("[ERROR] No events loaded. Check CSV format and columns (video,event_id,frame_index).")
         return
 
-    out_path = Path(args.out)
-    rois = load_json(out_path)
+    rois = load_json(OUT_JSON)
+    # print("[DEBUG] loaded rois keys:", list(rois.keys())[:20])
 
     videos = sorted(events_by_video.keys())
     for vname in videos:
-        # resolve video path: if vname is absolute or exists, use it; else join with videos-dir
+        # resolve video path
         vpath = Path(vname)
         if not vpath.exists():
-            candidate = Path(args.videos_dir) / vname
+            candidate = VIDEOS_DIR / vname
             if candidate.exists():
                 vpath = candidate
             else:
-                # try common extensions in videos-dir
                 found = None
                 for ext in (".mp4", ".avi", ".mov", ".mkv"):
-                    cand = Path(args.videos_dir) / (vname + ext)
+                    cand = VIDEOS_DIR / (vname + ext)
                     if cand.exists():
                         found = cand
                         break
                 if found:
                     vpath = found
                 else:
-                    # try resolving relative to CSV location (useful if CSV contains relative paths)
-                    csv_parent = events_csv_path.parent
+                    csv_parent = EVENTS_CSV.parent
                     cand2 = csv_parent / vname
                     if cand2.exists():
                         vpath = cand2
@@ -728,13 +778,13 @@ def main():
                         continue
 
         evs = events_by_video[vname]
-        print(f"\nAnnotating video {vpath} with {len(evs)} events -> output {out_path}")
-        annot = EventAnnotator(vpath, evs, rois, out_path, canonical_w=args.width, canonical_h=args.height)
+        print(f"\nAnnotating video {vpath} with {len(evs)} events -> output {OUT_JSON}")
+        # print("[DEBUG] rois for video:", rois.get(vname))
+        annot = EventAnnotator(vpath, evs, rois, OUT_JSON, canonical_w=DEFAULT_WIDTH, canonical_h=DEFAULT_HEIGHT)
         annot.run()
-        # save after each video
-        save_json(out_path, rois)
+        save_json(OUT_JSON, rois)
 
-    print("\nAll done. ROIs saved to", out_path)
+    print("\nAll done. ROIs saved to", OUT_JSON)
 
 if __name__ == "__main__":
     main()
