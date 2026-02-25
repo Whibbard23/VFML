@@ -1,0 +1,60 @@
+Event assembly summary - 2026-02-25T19:11:56.518048Z
+Input CSV: C:\Users\Connor Lab\Desktop\VFML\event_csvs\cleaned_events.csv
+Crops root: C:\Users\Connor Lab\Desktop\VFML\crops
+Experiment: assembly_1
+
+Videos scanned (folders under crops root): 39
+Total events considered (merged input + metadata): 2003
+Matched events (crop file found): 2003
+Missing events (no crop found): 0
+Ambiguous / duplicates flagged: 0
+
+Per-video summary:
+  AD128.avi: 77 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD128.avi_events.csv
+  AD146.avi: 38 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD146.avi_events.csv
+  AD151.avi: 33 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD151.avi_events.csv
+  AD162.avi: 43 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD162.avi_events.csv
+  AD169.avi: 79 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD169.avi_events.csv
+  AD175.avi: 57 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD175.avi_events.csv
+  AD217.avi: 23 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD217.avi_events.csv
+  AD228.avi: 73 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD228.avi_events.csv
+  AD235.avi: 34 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD235.avi_events.csv
+  AD238.avi: 60 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD238.avi_events.csv
+  AD243.avi: 45 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD243.avi_events.csv
+  AD256.avi: 109 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD256.avi_events.csv
+  AD276.avi: 51 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD276.avi_events.csv
+  AD290.avi: 67 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD290.avi_events.csv
+  AD294.avi: 42 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD294.avi_events.csv
+  AD317A.avi: 38 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD317A.avi_events.csv
+  AD317B.avi: 38 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD317B.avi_events.csv
+  AD334.avi: 61 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD334.avi_events.csv
+  AD378.avi: 41 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD378.avi_events.csv
+  AD388.avi: 38 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD388.avi_events.csv
+  AD389.avi: 51 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD389.avi_events.csv
+  AD394.avi: 87 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD394.avi_events.csv
+  AD424.avi: 105 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD424.avi_events.csv
+  AD435A.avi: 52 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD435A.avi_events.csv
+  AD435B.avi: 33 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD435B.avi_events.csv
+  AD451.avi: 31 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD451.avi_events.csv
+  AD458.avi: 61 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD458.avi_events.csv
+  AD459A.avi: 45 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD459A.avi_events.csv
+  AD459B.avi: 38 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD459B.avi_events.csv
+  AD496.avi: 66 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD496.avi_events.csv
+  AD498.avi: 23 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD498.avi_events.csv
+  AD503.avi: 26 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD503.avi_events.csv
+  AD530.avi: 32 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD530.avi_events.csv
+  AD534.avi: 29 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD534.avi_events.csv
+  AD541.avi: 47 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD541.avi_events.csv
+  AD543.avi: 73 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD543.avi_events.csv
+  AD547.avi: 36 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD547.avi_events.csv
+  AD605.avi: 55 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD605.avi_events.csv
+  AD646.avi: 66 events -> C:\Users\Connor Lab\Desktop\VFML\event_csvs\per_video\AD646.avi_events.csv
+
+Notes:
+ - 'source' indicates whether the event row originated from the input CSV (input) or from crops/<video>/metadata.json (metadata).
+ - matched: True/False indicates whether a crop file was found for the event.
+
+Important provenance note:
+ - The metadata entries include a 'video' field that points to the full .avi file location(s). Those full .avi files may include many files that have not been analyzed and are NOT part of the current dataset unless explicitly listed in the input CSV or present as crops under the crops root. Treat the full .avi location(s) as the original source media; only crops present under the crops root are considered part of the dataset for training/evaluation.
+
+Generated at: 2026-02-25T19:11:56.518048Z
