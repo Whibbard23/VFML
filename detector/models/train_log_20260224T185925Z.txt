@@ -1,0 +1,71 @@
+Training started at 2026-02-24T18:59:26.891588Z
+Data: detector\yolo_dataset\data.yaml
+Model: yolov8n.pt
+Epochs: 30
+Batch: 8
+Img: 640
+Workers: 2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,4 @@
+train: C:\Users\Connor Lab\Desktop\VFML\detector\yolo_dataset\images\train
+val: C:\Users\Connor Lab\Desktop\VFML\detector\yolo_dataset\images\val
+nc: 2
+names: ['mouth','ues']
