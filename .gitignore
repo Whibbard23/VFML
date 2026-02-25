@@ -24,3 +24,4 @@ crops/
 detector/yolo_dataset/images/
 detector/yolo_dataset/labels/
 runs/inference/AD128_roi/
+event_training/experiments/
