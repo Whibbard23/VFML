@@ -1,6 +1,6 @@
 # debug_batches.py
 import sys
-from event_training.data_loader import make_dataloader
+from event_training.legacy.data_loader import make_dataloader
 dl, ds = make_dataloader("event_csvs/assembly_1_train_events.csv", data_root=".", batch_size=8, num_workers=0, max_rows=200)
 for bi, batch in enumerate(dl):
     print("batch", bi, "type:", type(batch))

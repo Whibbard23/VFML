@@ -11,14 +11,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "event_training"))
 
 # try to import your data loader and training model factory
 try:
-    import data_loader
+    import event_training.legacy.data_loader as data_loader
 except Exception as e:
     raise RuntimeError(f"Failed to import data_loader from event_training: {e}")
 
 # Try to import train module to reuse model definition if available
 train_module = None
 try:
-    import event_training.legacy.train as train_module  # event_training/train.py
+    import event_training.legacy.old_binary_train as train_module  # event_training/train.py
 except Exception:
     train_module = None
 

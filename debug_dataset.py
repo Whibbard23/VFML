@@ -1,7 +1,7 @@
 # debug_dataset.py (save to project root)
 import sys
 
-from event_training.data_loader import EventCropDataset
+from event_training.legacy.data_loader import EventCropDataset
 from pathlib import Path
 import traceback
 

@@ -14,8 +14,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from pathlib import Path
-from data_loader import make_dataloader, EVENT_TO_IDX
-from utils import SimpleCNN, accuracy, save_checkpoint
+from event_training.legacy.data_loader import make_dataloader, EVENT_TO_IDX
+from event_training.legacy.utils import SimpleCNN, accuracy, save_checkpoint
 
 def parse_args():
     p = argparse.ArgumentParser()
