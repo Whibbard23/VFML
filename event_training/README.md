@@ -25,3 +25,10 @@ EVAL METRICS (detector)
 - Mean aboslute frame error between predicted and ground truth
 - False positives per minute - (full pipeline)
 - Sequence confusion: how often predicted order of events matches ground truth (some swallows start before others finish, may cause confusion)
+
+MOUTH DETECTOR
+- Independent subsystem - detects swallow onset without caring about UES state
+- Binary task - Is swallow onset happening in this clip?
+- Precise timing - Model predicts onset frame, derive before_onset = onset_frame - 1
+- No order assumptions (see: "EVAL METRICS/Sequence confusion")
+- Do not constrain swallow-level aggregator to merge mouth + UES + timing - May need to do bolus tracker with larger ROI to correctly combine mouth + ues info (this may be tricky)
