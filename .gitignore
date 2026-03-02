@@ -23,5 +23,7 @@ data/
 crops/
 detector/yolo_dataset/images/
 detector/yolo_dataset/labels/
-runs/inference/AD128_roi/
+runs/1_video_inference/
+runs/inference/
 event_training/experiments/
+event_training/training/mouth/mouth_detector_smoke.pth
