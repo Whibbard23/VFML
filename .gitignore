@@ -25,5 +25,8 @@ detector/yolo_dataset/images/
 detector/yolo_dataset/labels/
 runs/1_video_inference/
 runs/inference/
+runs/inference_val/
+runs/train_mouth_1/
+runs/train_mouth_debug/
 event_training/experiments/
 event_training/training/mouth/mouth_detector_smoke.pth
