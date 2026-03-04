@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# tools/mouth_tools/precompute_motion_maps_mouth.py
 """
 Precompute Farneback motion magnitude maps inside smoothed mouth ROI.
 

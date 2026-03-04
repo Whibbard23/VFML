@@ -1,0 +1,62 @@
+1. Run inference on val split
+
+$env:OMP_NUM_THREADS="1"; $env:MKL_NUM_THREADS="1"
+python -m event_training.training.train_mouth_model `
+  --csv event_csvs/mouth_crops_labels_with_hardneg.csv `
+  --frames-root runs/inference `
+  --out-dir runs/train_mouth_3 `
+  --batch-size 32 `
+  --epochs 10 `
+  --lr 0.001 `
+  --num-workers 0 `
+  --seed 42
+
+2. Evaluate with hysteresis to measure precision and recall
+    determines whether the new model improved false positives while keeping recall at 1.0
+
+$env:OMP_NUM_THREADS="1"; $env:MKL_NUM_THREADS="1"
+python apply_hysteresis_and_eval.py `
+  --probs runs/train_mouth_3_cpu/inference/probs.npy `
+  --mapping runs/train_mouth_3_cpu/inference/index_to_row.csv `
+  --labels runs/train_mouth_3_cpu/inference/val_labels.npy `
+  --window 1 `
+  --out-dir runs/eval_train_mouth_3
+
+3. Mine new hard negatives (if precision is still low)
+
+python hard_negative_mine.py `
+  --csv event_csvs/mouth_crops_labels_with_split.csv `
+  --ckpt runs/train_mouth_3_cpu/best.pth `
+  --frames-root runs/inference `
+  --device cpu `
+  --batch-size 32 `
+  --num-workers 0 `
+  --out-csv runs/train_mouth_3_cpu/mined_negatives_top50_per_video.csv `
+  --top-k-per-video 50 `
+  --global-top-n 500 `
+  --resume
+
+4. Convert mined negatives into training format
+    training csv 
+
+    python merge_with_hardneg.py `
+  --orig event_csvs/mouth_crops_labels_with_hardneg.csv `
+  --mined runs/train_mouth_2/mined_negatives_for_train.csv `
+  --meta event_csvs/mouth_crops_labels_with_split.csv `
+  --out event_csvs/mouth_crops_labels_with_hardneg.csv `
+  --min-val-frac 0.08 `
+  --seed 42
+
+
+5. Retrain using Newly Saved csv
+
+$env:OMP_NUM_THREADS="1"; $env:MKL_NUM_THREADS="1"
+python -m event_training.training.train_mouth_model `
+  --csv event_csvs/mouth_crops_labels_with_hardneg.csv `
+  --frames-root runs/inference `
+  --out-dir runs/train_mouth_4 `
+  --batch-size 32 `
+  --epochs 10 `
+  --lr 0.001 `
+  --num-workers 0 `
+  --seed 42

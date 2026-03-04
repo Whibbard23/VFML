@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
+SMOOTHING ROI
+
 Generate two consolidated EMA-smoothed .txt files per video (mouth and ues),
 saving outputs under runs/inference/<video_stem>_roi with the same subfolder layout.
 
 Usage example:
-  python inference/run_inference_smoothed_two_txts_per_video.py \
+  python inference/run_inference_all_videos.py \
     --csv event_csvs/assembly_1_train_events.csv \
     --data-root . \
     --out runs/inference \

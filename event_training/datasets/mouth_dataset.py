@@ -8,6 +8,7 @@ Expected layout per video stem:
 
 CSV must contain columns: video,frame,label,split
 """
+
 from pathlib import Path
 import csv
 import numpy as np
@@ -15,6 +16,7 @@ from PIL import Image
 import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
+import cv2  # <-- needed for CLAHE
 
 def _default_joint_transforms(resize=224, train=True):
     if train:
@@ -40,6 +42,7 @@ class MouthDataset(Dataset):
         self.split = split
         self.train = bool(train)
 
+        # Load rows
         self.rows = []
         with self.csv_path.open("r", encoding="utf-8-sig", newline="") as fh:
             rdr = csv.DictReader(fh)
@@ -54,9 +57,18 @@ class MouthDataset(Dataset):
                 label = int(float(r.get("label") or 0))
                 self.rows.append({"video": video, "frame": frame, "label": label})
 
-        self.geo_transform, self.color_transform = _default_joint_transforms(resize=self.resize, train=self.train)
+        # Transforms
+        self.geo_transform, self.color_transform = _default_joint_transforms(
+            resize=self.resize, train=self.train
+        )
         self.to_tensor = transforms.ToTensor()
-        self.rgb_norm = transforms.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])
+        self.rgb_norm = transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]
+        )
+
+        # --- CLAHE (must match ROI detector) ---
+        self.clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
 
     def __len__(self):
         return len(self.rows)
@@ -69,8 +81,22 @@ class MouthDataset(Dataset):
 
     def _load_rgb(self, p: Path):
         if not p.exists():
-            return Image.fromarray(np.zeros((self.resize, self.resize, 3), dtype=np.uint8))
-        return Image.open(p).convert("RGB")
+            # fallback: blank image
+            blank = np.zeros((self.resize, self.resize), dtype=np.uint8)
+            blank = cv2.cvtColor(blank, cv2.COLOR_GRAY2RGB)
+            return Image.fromarray(blank)
+
+        # Load grayscale for CLAHE
+        gray = cv2.imread(str(p), cv2.IMREAD_GRAYSCALE)
+        if gray is None:
+            gray = np.zeros((self.resize, self.resize), dtype=np.uint8)
+
+        # Apply CLAHE normalization
+        gray = self.clahe.apply(gray)
+
+        # Convert back to RGB for transforms
+        rgb = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
+        return Image.fromarray(rgb)
 
     def _load_motion(self, p: Path):
         if not p.exists():
@@ -87,30 +113,34 @@ class MouthDataset(Dataset):
         label = float(row["label"])
 
         crop_path, motion_path = self._resolve_paths(video, frame_idx)
+
+        # Load CLAHE-normalized RGB crop
         rgb_pil = self._load_rgb(crop_path)
-        motion_np = self._load_motion(motion_path)  # expected in [0,1]
 
-        # convert motion to PIL for joint geometric transforms
-        motion_pil = Image.fromarray((np.clip(motion_np,0,1) * 255).astype("uint8"))
+        # Load motion map
+        motion_np = self._load_motion(motion_path)
+        motion_pil = Image.fromarray((np.clip(motion_np, 0, 1) * 255).astype("uint8"))
 
-        # apply identical geometric transform
+        # Joint geometric transform
         rgb_geo = self.geo_transform(rgb_pil)
         motion_geo = self.geo_transform(motion_pil)
 
-        # photometric only on rgb
+        # Photometric jitter only on RGB
         if self.color_transform is not None:
             rgb_geo = self.color_transform(rgb_geo)
 
-        # to tensors and normalize
+        # Convert to tensors
         rgb_t = self.to_tensor(rgb_geo)
         rgb_t = self.rgb_norm(rgb_t)
+
         motion_t = self.to_tensor(motion_geo)  # 1xHxW
 
-        input_t = torch.cat([rgb_t, motion_t], dim=0)  # (4,H,W)
+        # Combine into 4-channel tensor
+        input_t = torch.cat([rgb_t, motion_t], dim=0)
         return input_t, torch.tensor(label, dtype=torch.float32)
 
+
 if __name__ == "__main__":
-    # quick smoke test
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--csv", required=True)
@@ -118,5 +148,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     ds = MouthDataset(args.csv, split=args.split, train=True)
     print("Dataset length:", len(ds))
-    x,y = ds[0]
+    x, y = ds[0]
     print("Sample shapes:", x.shape, y)

@@ -224,6 +224,9 @@ def main():
     parser.add_argument("--verbose", action="store_true", help="Enable verbose per-batch logging")
     parser.add_argument("--log-interval", type=int, default=50, help="Print status every N batches")
     parser.add_argument("--heartbeat-interval", type=int, default=30, help="Seconds between heartbeat file updates")
+    # Patch additions
+    parser.add_argument("--pos-weight-multiplier", type=float, default=1.0, help="Multiply computed pos_weight by this factor")
+    parser.add_argument("--oversample-positives", action="store_true", help="Use WeightedRandomSampler to oversample positives")
     args = parser.parse_args()
 
     # deterministic-ish
@@ -250,17 +253,27 @@ def main():
     last_heartbeat = time.time()
     faulthandler.enable()
 
-    # datasets and loaders
+    # datasets
     ds_train = MouthDataset(args.csv, frames_root=args.frames_root, split=args.train_split, train=True)
     ds_val = MouthDataset(args.csv, frames_root=args.frames_root, split=args.val_split, train=False)
 
-    dl_train = DataLoader(ds_train, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, collate_fn=collate_fn)
-    dl_val = DataLoader(ds_val, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, collate_fn=collate_fn)
-
-    # compute pos_weight for BCEWithLogitsLoss
+    # compute pos_weight for BCEWithLogitsLoss (apply multiplier)
     labels = [r["label"] for r in ds_train.rows]
     pos = sum(labels); neg = len(labels) - pos
-    pos_weight = torch.tensor([(neg / (pos + 1e-6))], dtype=torch.float32)
+    base_pw = (neg / (pos + 1e-6))
+    pos_weight = torch.tensor([base_pw * args.pos_weight_multiplier], dtype=torch.float32)
+
+    # create training DataLoader (optionally oversample positives)
+    if args.oversample_positives:
+        from torch.utils.data import WeightedRandomSampler
+        class_counts = [sum(1 for l in labels if l == c) for c in (0,1)]
+        weights = [ (1.0 / class_counts[int(l)]) for l in labels ]
+        sampler = WeightedRandomSampler(weights, num_samples=len(weights), replacement=True)
+        dl_train = DataLoader(ds_train, batch_size=args.batch_size, sampler=sampler, num_workers=args.num_workers, collate_fn=collate_fn)
+    else:
+        dl_train = DataLoader(ds_train, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, collate_fn=collate_fn)
+
+    dl_val = DataLoader(ds_val, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers, collate_fn=collate_fn)
 
     device = torch.device("cpu")
     use_pretrained = not args.no_pretrained

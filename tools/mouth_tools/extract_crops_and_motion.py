@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# tools/mouth_tools/extract_crops_and_motion.py
 """
 Extract mouth crops and precompute Farneback motion magnitude maps.
 
@@ -10,13 +11,13 @@ Outputs (per video):
   runs/inference/<video_stem>_roi/labels/motion/motion_000000.npy
 
 Usage example:
-  python tools\mouth_tools\extract_crops_and_motion.py \
-    --videos-csv event_csvs/assembly_1_video_splits.csv \
-    --frames-root runs/inference \
-    --smoothed-root runs/inference \
-    --out-root runs/inference \
-    --resize 224 \
-    --workers 1 \
+  python tools\mouth_tools\extract_crops_and_motion.py `
+    --videos-csv event_csvs/assembly_1_video_splits.csv `
+    --frames-root runs/inference `
+    --smoothed-root runs/inference `
+    --out-root runs/inference `
+    --resize 224 `
+    --workers 1 `
     --max-frames 1000
 """
 from pathlib import Path

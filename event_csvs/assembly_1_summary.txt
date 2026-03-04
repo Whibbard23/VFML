@@ -1,4 +1,4 @@
-Event assembly summary - 2026-02-25T19:11:56.518048Z
+Event assembly summary - 2026-03-04T20:28:22.728029Z
 Input CSV: C:\Users\Connor Lab\Desktop\VFML\event_csvs\cleaned_events.csv
 Crops root: C:\Users\Connor Lab\Desktop\VFML\crops
 Experiment: assembly_1
@@ -57,4 +57,4 @@ Notes:
 Important provenance note:
  - The metadata entries include a 'video' field that points to the full .avi file location(s). Those full .avi files may include many files that have not been analyzed and are NOT part of the current dataset unless explicitly listed in the input CSV or present as crops under the crops root. Treat the full .avi location(s) as the original source media; only crops present under the crops root are considered part of the dataset for training/evaluation.
 
-Generated at: 2026-02-25T19:11:56.518048Z
+Generated at: 2026-03-04T20:28:22.728029Z
