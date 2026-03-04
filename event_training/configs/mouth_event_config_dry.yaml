@@ -1,0 +1,37 @@
+﻿# Paths
+train_csv: "event_csvs/mouth_crops_labels_train.csv"
+val_csv:   "event_csvs/mouth_crops_labels_val.csv"
+
+# Training
+learning_rate: 0.001
+weight_decay: 0.0000
+
+
+dataset_debug: false            # set true to enable per-item debug prints from the dataset
+num_workers: 0                  # start with 0 for dry runs; increase to 1 then 2+ after validating
+dataloader_timeout: 90          # used only when num_workers > 0 (script forces 0 when num_workers == 0)
+batch_size: 16
+shuffle_within_video: true      # shuffle frames inside each video each epoch
+sampler_seed: 42                # seed used by VideoBatchSampler; changes per epoch for different order
+contrast_mode: "clahe"          # "clahe" or "none"
+epochs: 1
+
+
+# Model
+model_name: "resnet18"
+pretrained: false
+input_size: 224
+
+# Checkpoints and logs
+checkpoint_dir: "event_training/checkpoints"
+log_dir: "event_training/logs"
+
+# CPU only
+device: "cpu"
+
+# Augmentation
+augment:
+  brightness: 0.10
+  contrast: 0.10
+  rotation: 10
+

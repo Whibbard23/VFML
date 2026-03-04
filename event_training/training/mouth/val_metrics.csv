@@ -1,2 +1,0 @@
-epoch,avg_loss,acc,precision,recall,f1,auc,n_samples
-1,0.0012946477208470742,1.0,1.0,1.0,1.0,0.5,364

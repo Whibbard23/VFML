@@ -1,0 +1,24 @@
+dataset_debug: false
+num_workers: 2                # start with 1 then 2; tune upward only after testing
+dataloader_timeout: 90
+batch_size: 32
+shuffle_within_video: true
+sampler_seed: 42
+contrast_mode: "clahe"
+epochs: 20
+train_csv: "event_csvs/mouth_crops_labels_train.csv"
+val_csv: "event_csvs/mouth_crops_labels_val.csv"
+checkpoint_dir: "checkpoints"
+log_dir: "logs"
+input_size: 224
+learning_rate: 1e-4
+weight_decay: 0.0
+model_name: "resnet18"
+pretrained: false
+
+
+# Augmentation
+augment:
+  brightness: 0.10
+  contrast: 0.10
+  rotation: 10

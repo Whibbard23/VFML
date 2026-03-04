@@ -26,7 +26,7 @@ from torchvision.utils import make_grid, save_image
 from tqdm import tqdm
 
 try:
-    from event_training.datasets.mouth_detector_dataset import MouthDetectorDataset
+    from event_training.datasets.mouth_dataset import MouthDetectorDataset
 except Exception as e:
     raise ImportError("Could not import MouthDetectorDataset from event_training.datasets.") from e
 

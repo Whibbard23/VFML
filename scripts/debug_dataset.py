@@ -1,25 +1,19 @@
-# debug_dataset.py (save to project root)
-import sys
+import pandas as pd
+df = pd.read_csv("event_csvs/mouth_crops_labels_train.csv")
+print(df['label'].value_counts())
 
-from event_training.legacy.data_loader import EventCropDataset
-from pathlib import Path
-import traceback
+onsets = df[df.label == 1]
+missing = []
+for _, row in onsets.iterrows():
+    before = df[(df.filepath == row.filepath) & (df.frame == row.frame - 1)]
+    if before.empty:
+        missing.append((row.filepath, row.frame))
+print("Missing before_onset:", len(missing))
 
-csv = Path("event_csvs/assembly_1_train_events.csv")
-print("CSV exists:", csv.exists(), "path:", csv.resolve())
-ds = EventCropDataset(str(csv), data_root=".", image_size=(128,128), max_rows=200)
-print("Dataset length:", len(ds))
-for i in range(min(40, len(ds))):
-    try:
-        item = ds[i]
-        print(i, "->", type(item), "len:", (len(item) if hasattr(item,'__len__') else None))
-        if isinstance(item, tuple):
-            print("   types:", [type(x) for x in item])
-            # print label value and missing flag
-            lbl = item[1].item() if hasattr(item[1], "item") else item[1]
-            meta = item[2] if len(item) > 2 else None
-            print("   label:", lbl, "meta.missing:", meta.get("missing") if isinstance(meta, dict) else None)
-    except Exception:
-        print("Exception at index", i)
-        traceback.print_exc()
-        break
+befores = df[df.label == 0]  # may include random negatives too
+missing = []
+for _, row in befores.iterrows():
+    onset = df[(df.filepath == row.filepath) & (df.frame == row.frame + 1)]
+    if onset.empty:
+        missing.append((row.filepath, row.frame))
+print("Missing onset:", len(missing))
