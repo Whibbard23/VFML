@@ -8,7 +8,7 @@ This folder contains a small, self-contained training pipeline to:
 - run a smoke test to validate data loading and model shapes,
 - run a short or full training run and save checkpoints.
 
-It is intentionally minimal so you can adapt it to your full training stack.
+It is intentionally minimal so you can adapt it to full training stack.
 
 ## Files
 - `data_loader.py` — PyTorch Dataset and DataLoader factory.

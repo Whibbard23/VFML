@@ -36,7 +36,7 @@ import torch
 import numpy as np
 from torchvision import transforms
 from datetime import datetime
-from datasets.mouth_dataset import MouthOnsetDataset  # for reference; not used directly
+from event_training.legacy.mouth_dataset import MouthOnsetDataset  # for reference; not used directly
 
 def parse_args():
     p = argparse.ArgumentParser()

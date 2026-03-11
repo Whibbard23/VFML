@@ -25,7 +25,7 @@ from torch import nn
 from torch.utils.data import DataLoader, Sampler
 from torchvision import models, transforms
 
-from event_training.datasets.mouth_dataset import MouthOnsetDataset
+from event_training.legacy.mouth_dataset import MouthOnsetDataset
 from typing import Iterator, List, Sequence, Dict, Any
 
 # -----------------------
