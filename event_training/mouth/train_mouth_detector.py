@@ -345,7 +345,7 @@ def train(args):
 
     # choose pos_per_batch: at least 1, but not more than batch_size-1
     # using the increased heuristic: batch_size // 4
-    pos_per_batch = max(1, min(args.batch_size - 1, max(1, args.batch_size // 4)))
+    pos_per_batch = max(1, min(args.batch_size - 1, max(1, args.batch_size // 8)))
     print(f"Using BalancedBatchSampler with pos_per_batch={pos_per_batch} (batch_size={args.batch_size})")
 
     # BalancedBatchSampler will oversample positives (with replacement) and sample negatives without replacement
