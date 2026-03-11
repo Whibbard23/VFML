@@ -1,0 +1,56 @@
+Traceback (most recent call last):
+  File "C:\Users\Connor Lab\Desktop\VFML\detector\infer_yolo.py", line 11, in <module>
+    from ultralytics import YOLO
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\ultralytics\__init__.py", line 13, in <module>
+    from ultralytics.utils import ASSETS, SETTINGS
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\ultralytics\utils\__init__.py", line 26, in <module>
+    import torch
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\torch\__init__.py", line 2319, in <module>
+    from torch import quantization as quantization  # usort: skip
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\torch\quantization\__init__.py", line 2, in <module>
+    from .fake_quantize import *  # noqa: F403
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\torch\quantization\fake_quantize.py", line 10, in <module>
+    from torch.ao.quantization.fake_quantize import (
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\torch\ao\quantization\__init__.py", line 14, in <module>
+    from .pt2e._numeric_debugger import (  # noqa: F401
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\torch\ao\quantization\pt2e\_numeric_debugger.py", line 8, in <module>
+    from torch.ao.quantization.pt2e.graph_utils import bfs_trace_with_node_process
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\torch\ao\quantization\pt2e\graph_utils.py", line 9, in <module>
+    from torch.export import ExportedProgram
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\torch\export\__init__.py", line 42, in <module>
+    from .decomp_utils import CustomDecompTable
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\torch\export\decomp_utils.py", line 5, in <module>
+    from torch._export.utils import (
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\torch\_export\__init__.py", line 49, in <module>
+    from .wrappers import _wrap_submodules
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\torch\_export\wrappers.py", line 10, in <module>
+    from torch._higher_order_ops.flat_apply import (
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\torch\_higher_order_ops\__init__.py", line 36, in <module>
+    from torch._higher_order_ops.wrap import (
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\torch\_higher_order_ops\wrap.py", line 16, in <module>
+    from torch.utils._debug_mode import DebugMode
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\torch\utils\_debug_mode.py", line 661, in <module>
+    def _annotate(tag: str) -> None:
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\torch\_library\custom_ops.py", line 157, in inner
+    result = CustomOpDef(namespace, opname, schema_str, fn, tags)
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\torch\_library\custom_ops.py", line 215, in __init__
+    self._register_to_dispatcher(self._tags)
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\torch\_library\custom_ops.py", line 638, in _register_to_dispatcher
+    lib._register_fake(self._name, fake_impl, _stacklevel=4)
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\torch\library.py", line 182, in _register_fake
+    source = torch._library.utils.get_source(_stacklevel + 1)
+  File "C:\Users\Connor Lab\Desktop\VFML\.venv\lib\site-packages\torch\_library\utils.py", line 45, in get_source
+    frame = inspect.getframeinfo(sys._getframe(stacklevel))
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.10_3.10.3056.0_x64__qbz5n2kfra8p0\lib\inspect.py", line 1624, in getframeinfo
+    lines, lnum = findsource(frame)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.10_3.10.3056.0_x64__qbz5n2kfra8p0\lib\inspect.py", line 952, in findsource
+    module = getmodule(object, file)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.10_3.10.3056.0_x64__qbz5n2kfra8p0\lib\inspect.py", line 875, in getmodule
+    f = getabsfile(module)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.10_3.10.3056.0_x64__qbz5n2kfra8p0\lib\inspect.py", line 844, in getabsfile
+    _filename = getsourcefile(object) or getfile(object)
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.10_3.10.3056.0_x64__qbz5n2kfra8p0\lib\inspect.py", line 826, in getsourcefile
+    if os.path.exists(filename):
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.10_3.10.3056.0_x64__qbz5n2kfra8p0\lib\genericpath.py", line 19, in exists
+    os.stat(path)
+KeyboardInterrupt

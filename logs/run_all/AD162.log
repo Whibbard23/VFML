@@ -1,0 +1,3 @@
+usage: infer_yolo.py [-h] [--weights WEIGHTS] [--video VIDEO] [--out OUT]
+                     [--vis-dir VIS_DIR] [--conf-thres CONF_THRES]
+infer_yolo.py: error: unrecognized arguments: --out-json detector_outputs\AD162.json

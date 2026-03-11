@@ -1,5 +1,5 @@
 """
-infer_yolo.py
+detector/infer_yolo.py
 Run a trained YOLOv8 model on a video and save detections.
 
 Edit the CONFIG block below to set WEIGHTS_PATH and VIDEO_PATH.

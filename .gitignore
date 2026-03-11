@@ -20,9 +20,9 @@ dist/
 
 # Local Data
 data/
-crops/
 detector/yolo_dataset/images/
 detector/yolo_dataset/labels/
+detector/models/
 runs/1_video_inference/
 runs/inference/
 runs/inference_val/
@@ -31,3 +31,4 @@ runs/train_mouth_debug/
 event_training/experiments/
 event_training/training/mouth/mouth_detector_smoke.pth
 checkpoints/
+detector/pipeline_output/

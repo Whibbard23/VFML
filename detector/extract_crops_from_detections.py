@@ -2,22 +2,19 @@
 extract_crops_from_detections.py
 Extract normalized CLAHE crops from detector output.
 
-Edit the CONFIG block below to set DETECTIONS_JSON, VIDEO_PATH, and OUT_ROOT.
-Run: python detector/extract_crops_from_detections.py
+Saves crops to <out_root>/<video_stem>/mouth and <out_root>/<video_stem>/ues.
+Prefer smoothed_xyxy if present in the detections JSON.
+Run: python detector/extract_crops_from_detections.py --detections <json> --video <video.avi> --out <out_root> --canonical 224 224 --apply-clahe-rgb
 """
 import argparse
 import json
-from pathlib import Path
 import os
+from pathlib import Path
 import cv2
 import numpy as np
 
 # -------------------------
-# CONFIGURATION
-DETECTIONS_JSON = Path("detector_output_AD128.json")
-VIDEO_PATH = Path(r"\\research.drive.wisc.edu\npconnor\ADStudy\VF AD Blinded\Early Tongue Training\AD128.avi")
-OUT_ROOT = Path("./crops_from_detector")
-CANONICAL = (128, 128)
+# Defaults (can be overridden via CLI)
 JPEG_QUALITY = 90
 CLAHE_CLIP = 2.0
 CLAHE_TILE = (8, 8)
@@ -54,7 +51,7 @@ def apply_clahe(img_gray):
     clahe = cv2.createCLAHE(clipLimit=CLAHE_CLIP, tileGridSize=CLAHE_TILE)
     return clahe.apply(img_gray)
 
-# New helper: CLAHE on RGB array (applies CLAHE to luminance channel)
+# CLAHE helper for RGB luminance
 _clahe_rgb = cv2.createCLAHE(clipLimit=CLAHE_CLIP, tileGridSize=CLAHE_TILE)
 
 def apply_clahe_to_rgb_array(arr_rgb):
@@ -63,7 +60,6 @@ def apply_clahe_to_rgb_array(arr_rgb):
     returns: H,W,3 uint8 in RGB order with CLAHE applied on luminance (Y channel)
     """
     if arr_rgb.ndim != 3 or arr_rgb.shape[2] != 3:
-        # fallback: treat as grayscale
         gray = arr_rgb if arr_rgb.ndim == 2 else cv2.cvtColor(arr_rgb, cv2.COLOR_BGR2GRAY)
         out_gray = _clahe_rgb.apply(gray)
         return cv2.cvtColor(out_gray, cv2.COLOR_GRAY2RGB)
@@ -82,23 +78,30 @@ def crop_and_process(frame, xyxy, canonical_wh, ref_median, apply_clahe_rgb=Fals
     x2 = max(x1+8, min(x2, w_img))
     y2 = max(y1+8, min(y2, h_img))
     crop = frame[y1:y2, x1:x2]
-    # convert to grayscale for reference normalization and legacy CLAHE
     gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY) if crop.ndim==3 else crop
     frame_median = float(np.median(gray))
     gray = normalize_frame_to_reference(gray, frame_median, ref_median)
-    # apply grayscale CLAHE (keeps single-channel)
     gray = apply_clahe(gray)
-    # resize grayscale result to canonical size
     out_gray = cv2.resize(gray, canonical_wh, interpolation=cv2.INTER_LINEAR)
     if apply_clahe_rgb:
-        # also produce an RGB CLAHEed image by applying CLAHE on luminance of the resized color crop
-        # convert original crop to RGB, resize, apply RGB-CLAHE, then convert to grayscale to keep behavior consistent
+        # apply CLAHE on luminance of resized color crop, then convert to grayscale
         crop_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB) if crop.ndim==3 else cv2.cvtColor(np.stack([crop]*3, axis=-1), cv2.COLOR_BGR2RGB)
         crop_rgb_resized = cv2.resize(crop_rgb, canonical_wh, interpolation=cv2.INTER_LINEAR)
         crop_rgb_clahe = apply_clahe_to_rgb_array(crop_rgb_resized)
-        # convert back to grayscale to maintain single-channel output (model expects single-channel)
         out_gray = cv2.cvtColor(crop_rgb_clahe, cv2.COLOR_RGB2GRAY)
     return out_gray
+
+def select_box_for_crop(boxes):
+    """
+    boxes: list of dicts with keys 'xyxy', 'conf', optionally 'smoothed_xyxy'
+    returns (xyxy, conf) or (None, None)
+    """
+    if not boxes:
+        return None, None
+    # choose highest-confidence box
+    best = max(boxes, key=lambda x: x.get("conf", 0.0))
+    xy = best.get("smoothed_xyxy") or best.get("xyxy")
+    return xy, best.get("conf", 0.0)
 
 def main():
     p = argparse.ArgumentParser()
@@ -107,52 +110,59 @@ def main():
     p.add_argument("--out", default=None, help="Output root for crops")
     p.add_argument("--canonical", nargs=2, type=int, default=None, help="Output crop size W H")
     p.add_argument("--jpeg-quality", type=int, default=None, help="JPEG quality for saved crops")
-    p.add_argument("--apply-clahe-rgb", action="store_true", help="Apply CLAHE on RGB luminance after resize (produces single-channel output)")
+    p.add_argument("--apply-clahe-rgb", action="store_true", help="Apply CLAHE on RGB luminance after resize")
     args = p.parse_args()
 
-    dets_path = Path(args.detections) if args.detections else DETECTIONS_JSON
-    vpath = Path(args.video) if args.video else VIDEO_PATH
-    out_root = Path(args.out) if args.out else OUT_ROOT
-    canonical_wh = tuple(args.canonical) if args.canonical else CANONICAL
+    dets_path = Path(args.detections) if args.detections else None
+    vpath = Path(args.video) if args.video else None
+    out_root = Path(args.out) if args.out else Path("detections")
+    canonical_wh = tuple(args.canonical) if args.canonical else (128,128)
     jpeg_quality = int(args.jpeg_quality) if args.jpeg_quality else JPEG_QUALITY
     apply_clahe_rgb = bool(args.apply_clahe_rgb)
+
+    if dets_path is None or not dets_path.exists():
+        raise FileNotFoundError(f"Detections JSON not found: {dets_path}")
+    if vpath is None or not vpath.exists():
+        raise FileNotFoundError(f"Video not found: {vpath}")
 
     dets = json.loads(dets_path.read_text())
     ref_median = compute_video_reference_median(vpath, sample_count=50)
     print("reference median:", ref_median)
 
     cap = cv2.VideoCapture(str(vpath))
+    video_stem = Path(vpath).stem
     for item in dets:
         frame_idx = int(item["frame"])
         cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
         ret, frame = cap.read()
         if not ret or frame is None:
             continue
-        video_name = vpath.name
-        video_out = out_root / video_name
+
+        video_out = out_root / video_stem
         mouth_out = video_out / "mouth"
         ues_out = video_out / "ues"
         mouth_out.mkdir(parents=True, exist_ok=True)
         ues_out.mkdir(parents=True, exist_ok=True)
 
-        mouth_boxes = [b for b in item["boxes"] if b["class"]==0]
-        ues_boxes = [b for b in item["boxes"] if b["class"]==1]
-        if mouth_boxes:
-            best = max(mouth_boxes, key=lambda x: x["conf"])
-            img = crop_and_process(frame, best["xyxy"], canonical_wh, ref_median, apply_clahe_rgb=apply_clahe_rgb)
+        mouth_boxes = [b for b in item.get("boxes", []) if int(b.get("class", 0)) == 0]
+        ues_boxes = [b for b in item.get("boxes", []) if int(b.get("class", 0)) == 1]
+
+        mouth_xy, mouth_conf = select_box_for_crop(mouth_boxes)
+        if mouth_xy:
+            img = crop_and_process(frame, mouth_xy, canonical_wh, ref_median, apply_clahe_rgb=apply_clahe_rgb)
             fname = f"frame_{frame_idx:06d}_mouth.jpg"
             outp = mouth_out / fname
-            # img is single-channel grayscale uint8; save as JPEG
             cv2.imwrite(str(outp), img, [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality])
-        if ues_boxes:
-            best = max(ues_boxes, key=lambda x: x["conf"])
-            img = crop_and_process(frame, best["xyxy"], canonical_wh, ref_median, apply_clahe_rgb=apply_clahe_rgb)
+
+        ues_xy, ues_conf = select_box_for_crop(ues_boxes)
+        if ues_xy:
+            img = crop_and_process(frame, ues_xy, canonical_wh, ref_median, apply_clahe_rgb=apply_clahe_rgb)
             fname = f"frame_{frame_idx:06d}_ues.jpg"
             outp = ues_out / fname
             cv2.imwrite(str(outp), img, [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality])
 
     cap.release()
     print("Done extracting crops.")
-
+    
 if __name__ == "__main__":
     main()
