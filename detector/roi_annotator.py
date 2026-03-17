@@ -1,17 +1,15 @@
+# detector/event_roi_annotator.py
 """
-event_roi_annotator.py
-
-ROI annotator.
+Event-aligned ROI annotator.
 
 Usage:
-    python detector\roi_annotator.py events.csv --videos-dir /path/to/videos --out event_rois.json
-
+    python tools\event_roi_annotator.py events.csv --videos-dir /path/to/videos --out event_rois.json
 """
 import csv
 import cv2
 import json
+import numpy as np
 from pathlib import Path
-import sys
 import math
 import random
 from datetime import datetime
@@ -19,14 +17,12 @@ from datetime import datetime
 # -------------------------
 # Hardcoded paths (edit if needed)
 # -------------------------
-# Script is expected to live in tools/; these defaults point to repo root siblings.
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent
 
 EVENTS_CSV = Path(r"C:\Users\Connor Lab\Desktop\VFML\event_csvs\cleaned_events.csv")
 VIDEOS_DIR = Path(r"\\research.drive.wisc.edu\npconnor\ADStudy\VF AD Blinded\Early Tongue Training")
 OUT_JSON = REPO_ROOT / "detector/event_rois.json"
-
 
 print("EVENTS_CSV:", EVENTS_CSV, "exists:", EVENTS_CSV.exists(), "is_file:", EVENTS_CSV.is_file())
 print("VIDEOS_DIR:", VIDEOS_DIR, "exists:", VIDEOS_DIR.exists(), "is_dir:", VIDEOS_DIR.is_dir())
@@ -39,6 +35,7 @@ DEFAULT_WIDTH = 128
 DEFAULT_HEIGHT = 128
 MIN_FRAME_SKIP = 5
 BLACK_MEAN_THRESHOLD = 10.0
+BLACK_PIXEL_THRESHOLD = 10  # per-pixel threshold for visible mask
 REPLACEMENT_MAX_TRIES = 500
 DISPLAY_SCALE = 5.0
 SCREEN_MARGIN = 80
@@ -70,13 +67,17 @@ def load_events(csv_path: Path):
     Expand each row into THREE events:
         event_id = before_onset / touch_ues / leave_ues
         frame_index = integer frame number
+
+    Assumes frames in CSV are zero-based.
     """
     events_by_video = {}
 
     with open(csv_path, newline='') as fh:
         reader = csv.DictReader(fh)
         for r in reader:
-            video = r["video"]
+            video = r.get("video")
+            if video is None:
+                continue
 
             # Expand each event type
             for event_name in ("before_onset", "touch_ues", "leave_ues"):
@@ -85,7 +86,7 @@ def load_events(csv_path: Path):
                     continue
                 try:
                     frame_idx = int(raw_val)
-                except:
+                except Exception:
                     continue
 
                 events_by_video.setdefault(video, []).append({
@@ -95,14 +96,15 @@ def load_events(csv_path: Path):
                     "meta": r
                 })
 
-
     # Sort events chronologically for each video
     for v in events_by_video:
         events_by_video[v] = sorted(events_by_video[v], key=lambda e: e["frame_index"])
 
     return events_by_video
-    
 
+# -------------------------
+# Sampling non-event frames (uniform, min-distance)
+# -------------------------
 def sample_non_event_frames_uniform(video_path: Path,
                                     event_frames: list,
                                     sample_count: int = 30,
@@ -115,6 +117,7 @@ def sample_non_event_frames_uniform(video_path: Path,
 
     - Respects MIN_FRAME_SKIP (won't pick frames < MIN_FRAME_SKIP).
     - Deterministic when seed is not None.
+    - If there are fewer valid frames than sample_count, returns all valid frames sorted.
     """
     cap = cv2.VideoCapture(str(video_path))
     if not cap.isOpened():
@@ -143,16 +146,9 @@ def sample_non_event_frames_uniform(video_path: Path,
     if not valid_frames:
         return []
 
-    # If there are fewer valid frames than requested, return a subset uniformly spaced
+    # If there are fewer valid frames than requested, return all valid frames sorted
     if len(valid_frames) <= sample_count:
-        # choose up to sample_count uniformly from valid_frames
-        if seed is not None:
-            rnd = random.Random(seed)
-            rnd.shuffle(valid_frames)
-            chosen = sorted(valid_frames[:sample_count])
-        else:
-            chosen = valid_frames[:sample_count]
-        return chosen
+        return sorted(valid_frames)
 
     # Otherwise, divide the timeline into sample_count segments and pick one valid frame per segment
     segment_size = total_frames / float(sample_count)
@@ -204,6 +200,48 @@ def sample_non_event_frames_uniform(video_path: Path,
     return sorted(chosen)
 
 # -------------------------
+# Helper: compute visible fraction (pixel-based)
+# -------------------------
+def compute_visible_fraction_pixel(frame, raw_box, canonical_w, canonical_h, black_thresh=BLACK_PIXEL_THRESHOLD):
+    """
+    Compute visible_fraction as fraction of canonical area that overlaps non-black pixels.
+    frame: HxW x3 BGR numpy array
+    raw_box: [x, y, w, h] (may be negative or extend beyond frame)
+    canonical_w, canonical_h: canonical ROI size used for denominator
+    """
+    if frame is None:
+        return 0.0
+    x, y, w, h = raw_box
+    denom = float(canonical_w * canonical_h)
+    if denom <= 0:
+        return 0.0
+
+    # Binary mask of non-black pixels (visible image area)
+    visible_mask = np.any(frame > black_thresh, axis=2).astype(np.uint8)
+
+    # Crop coordinates
+    x0 = int(math.floor(x))
+    y0 = int(math.floor(y))
+    x1 = x0 + int(w)
+    y1 = y0 + int(h)
+
+    H, W = visible_mask.shape
+    cx0 = max(0, x0)
+    cy0 = max(0, y0)
+    cx1 = min(W, x1)
+    cy1 = min(H, y1)
+
+    if cx1 <= cx0 or cy1 <= cy0:
+        visible_pixels = 0
+    else:
+        crop = visible_mask[cy0:cy1, cx0:cx1]
+        visible_pixels = int(crop.sum())
+
+    visible_fraction = float(visible_pixels) / denom
+    visible_fraction = max(0.0, min(1.0, visible_fraction))
+    return visible_fraction
+
+# -------------------------
 # Event annotator
 # -------------------------
 class EventAnnotator:
@@ -230,14 +268,31 @@ class EventAnnotator:
         self.slot_history = {}
         self.last_saved_frame = {}
 
+        # clamped boxes used for display and model input (always clamped to image bounds)
         self.boxes = {
             "mouth": {"x": 0, "y": 0, "w": self.canonical_w, "h": self.canonical_h},
             "ues": {"x": 0, "y": 0, "w": self.canonical_w, "h": self.canonical_h}
         }
+        # raw_boxes represent annotator-intended box (may be off-frame, negative coords)
+        self.raw_boxes = {
+            "mouth": {"x": 0, "y": 0, "w": self.canonical_w, "h": self.canonical_h},
+            "ues": {"x": 0, "y": 0, "w": self.canonical_w, "h": self.canonical_h}
+        }
+
         self.active_box = "mouth"
+        # per-ROI visibility: values are one of VISIBILITY_STATES
+        # default to visible; will be overridden by saved JSON if present
         self.visibility = {"mouth": "visible", "ues": "visible"}
+
+        # per-ROI off-frame flags and visible_fraction values
+        self.off_frame = {"mouth": False, "ues": False}
+        self.visible_fraction = {"mouth": 1.0, "ues": 1.0}
+
         self.bolus_mouth_present = {}
         self.bolus_ues_present = {}
+
+        # persistent VideoCapture for performance on network drives
+        self.cap = None
 
         self._open_video()
         self._load_persisted_event_slot_map()
@@ -245,24 +300,46 @@ class EventAnnotator:
         self._load_current_frame_and_state()
 
     # -------------------------
-    # Video helpers
+    # Video helpers (persistent capture)
     # -------------------------
     def _open_video(self):
-        cap = cv2.VideoCapture(str(self.video_path))
-        if not cap.isOpened():
+        # Open persistent capture and set total_frames
+        if self.cap is not None:
+            try:
+                self.cap.release()
+            except Exception:
+                pass
+        self.cap = cv2.VideoCapture(str(self.video_path))
+        if not self.cap.isOpened():
             raise IOError(f"Cannot open video: {self.video_path}")
-        self.total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 1
-        cap.release()
+        self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 1
+
+    def _close_video(self):
+        if self.cap is not None:
+            try:
+                self.cap.release()
+            except Exception:
+                pass
+            self.cap = None
+
+    def _seek_and_read(self, idx):
+        """
+        Seek to frame idx using the persistent capture and read it.
+        Returns (ret, frame).
+        """
+        if self.cap is None:
+            # try to reopen
+            self._open_video()
+        idx = max(0, min(idx, max(0, self.total_frames - 1)))
+        try:
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+            ret, f = self.cap.read()
+            return ret, f
+        except Exception:
+            return False, None
 
     def _frame_mean(self, idx):
-        cap = cv2.VideoCapture(str(self.video_path))
-        if not cap.isOpened():
-            cap.release()
-            return None
-        idx = max(0, min(idx, max(0, self.total_frames - 1)))
-        cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
-        ret, f = cap.read()
-        cap.release()
+        ret, f = self._seek_and_read(idx)
         if not ret or f is None:
             return None
         if len(f.shape) == 3 and f.shape[2] == 3:
@@ -273,7 +350,8 @@ class EventAnnotator:
     def _find_replacement(self):
         tried = set()
         tries = 0
-        start = min(MIN_FRAME_SKIP, max(0, self.total_frames - 1))
+        # start at MIN_FRAME_SKIP unless video shorter
+        start = MIN_FRAME_SKIP if self.total_frames > MIN_FRAME_SKIP else 0
         while tries < REPLACEMENT_MAX_TRIES:
             tries += 1
             if self.total_frames - 1 <= start:
@@ -291,7 +369,7 @@ class EventAnnotator:
         return None
 
     # -------------------------
-    # Persistence: event slot map
+    # Persistence: event slot map (stable keys)
     # -------------------------
     def _load_persisted_event_slot_map(self):
         slot_map = self.rois.get("__event_slot_map__", {})
@@ -302,45 +380,113 @@ class EventAnnotator:
             if "__event_slot_map__" not in self.rois or not isinstance(self.rois["__event_slot_map__"], dict):
                 self.rois["__event_slot_map__"] = {}
             mapping = {}
+            # Build mapping using stable keys: "<event_id>:<frame_index>"
             for i, ev in enumerate(self.events):
-                mapping[str(i)] = int(self.sampled_indices[i])
+                try:
+                    ev_id = str(ev.get("event_id"))
+                    ev_frame = int(ev.get("frame_index"))
+                    key = f"{ev_id}:{ev_frame}"
+                    mapping[key] = int(self.sampled_indices[i])
+                except Exception:
+                    # skip malformed entries
+                    continue
             self.rois["__event_slot_map__"][self.video_path.name] = mapping
             save_json(self.out_path, self.rois)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[WARN] _persist_event_slot_map failed: {e}")
 
     # -------------------------
     # Slot initialization
     # -------------------------
     def _init_slots(self):
-        slot_key = str(len(self.sampled_indices)-1)
-        if slot_key in self.persisted_map:
-            idx = int(self.persisted_map[slot_key])
+        # Build sampled_indices from events, using persisted_map when available
         self.sampled_indices = []
         for ev in self.events:
-            eid = ev["event_id"]
-            if str(len(self.sampled_indices)) in self.persisted_map:
-                idx = int(self.persisted_map[str(len(self.sampled_indices))])
+            try:
+                ev_id = str(ev.get("event_id"))
+                ev_frame = int(ev.get("frame_index"))
+            except Exception:
+                # fallback: use 0
+                ev_id = str(ev.get("event_id", "unknown"))
+                ev_frame = int(ev.get("frame_index", 0))
 
+            event_key = f"{ev_id}:{ev_frame}"
+            if event_key in self.persisted_map:
+                try:
+                    idx = int(self.persisted_map[event_key])
+                except Exception:
+                    idx = ev_frame
             else:
-                idx = int(ev["frame_index"])
+                idx = ev_frame
                 if idx < MIN_FRAME_SKIP and self.total_frames > MIN_FRAME_SKIP:
                     idx = MIN_FRAME_SKIP
-            self.sampled_indices.append(idx)
-            self.slot_history.setdefault(len(self.sampled_indices)-1, [])
-            slot = len(self.sampled_indices)-1
+
+            self.sampled_indices.append(int(idx))
+            self.slot_history.setdefault(len(self.sampled_indices) - 1, [])
+            slot = len(self.sampled_indices) - 1
 
             existing = self._find_saved_entry_for_event(ev["event_id"], idx)
 
             if existing:
+                # Load bolus flags
                 self.bolus_mouth_present[slot] = bool(existing.get("bolus_mouth_present", False))
-                self.bolus_ues_present[slot]   = bool(existing.get("bolus_ues_present", False))
-                self.last_saved_frame[slot]    = int(existing.get("frame_index"))
+                self.bolus_ues_present[slot] = bool(existing.get("bolus_ues_present", False))
+                self.last_saved_frame[slot] = int(existing.get("frame_index"))
+
+                # Load saved boxes and raw boxes if present
+                if "mouth" in existing:
+                    x, y, w, h = existing["mouth"]
+                    self.boxes["mouth"].update({"x": int(x), "y": int(y), "w": int(w), "h": int(h)})
+                if "ues" in existing:
+                    x, y, w, h = existing["ues"]
+                    self.boxes["ues"].update({"x": int(x), "y": int(y), "w": int(w), "h": int(h)})
+
+                # Load raw boxes if present, else set raw to current clamped boxes
+                if "mouth_raw_box" in existing:
+                    rx, ry, rw, rh = existing.get("mouth_raw_box", [self.boxes["mouth"]["x"], self.boxes["mouth"]["y"], self.boxes["mouth"]["w"], self.boxes["mouth"]["h"]])
+                    self.raw_boxes["mouth"].update({"x": int(rx), "y": int(ry), "w": int(rw), "h": int(rh)})
+                else:
+                    self.raw_boxes["mouth"].update({"x": int(self.boxes["mouth"]["x"]), "y": int(self.boxes["mouth"]["y"]), "w": int(self.boxes["mouth"]["w"]), "h": int(self.boxes["mouth"]["h"])})
+
+                if "ues_raw_box" in existing:
+                    rx, ry, rw, rh = existing.get("ues_raw_box", [self.boxes["ues"]["x"], self.boxes["ues"]["y"], self.boxes["ues"]["w"], self.boxes["ues"]["h"]])
+                    self.raw_boxes["ues"].update({"x": int(rx), "y": int(ry), "w": int(rw), "h": int(rh)})
+                else:
+                    self.raw_boxes["ues"].update({"x": int(self.boxes["ues"]["x"]), "y": int(self.boxes["ues"]["y"]), "w": int(self.boxes["ues"]["w"]), "h": int(self.boxes["ues"]["h"])})
+
+                # Load visibility (dict or legacy string)
+                vis = existing.get("visibility", None)
+                if isinstance(vis, dict):
+                    self.visibility["mouth"] = vis.get("mouth", "visible") if vis.get("mouth") in VISIBILITY_STATES else "visible"
+                    self.visibility["ues"] = vis.get("ues", "visible") if vis.get("ues") in VISIBILITY_STATES else "visible"
+                else:
+                    if isinstance(vis, str) and vis in VISIBILITY_STATES:
+                        self.visibility["mouth"] = vis
+                        self.visibility["ues"] = vis
+
+                # Load off_frame and visible_fraction if present
+                self.off_frame["mouth"] = bool(existing.get("mouth_off_frame", False))
+                self.off_frame["ues"] = bool(existing.get("ues_off_frame", False))
+                self.visible_fraction["mouth"] = float(existing.get("mouth_visible_fraction", 1.0))
+                self.visible_fraction["ues"] = float(existing.get("ues_visible_fraction", 1.0))
+
             else:
                 # Apply event-type dependent defaults for unsaved slots
                 self._apply_event_defaults(ev["event_id"], slot)
+                # defaults for raw boxes: center them (will be set when frame loads)
+                self.raw_boxes["mouth"].update({"x": 0, "y": 0, "w": self.canonical_w, "h": self.canonical_h})
+                self.raw_boxes["ues"].update({"x": 0, "y": 0, "w": self.canonical_w, "h": self.canonical_h})
+                # defaults for visibility/off_frame/visible_fraction
+                self.visibility["mouth"] = "visible"
+                self.visibility["ues"] = "visible"
+                self.off_frame["mouth"] = False
+                self.off_frame["ues"] = False
+                self.visible_fraction["mouth"] = 1.0
+                self.visible_fraction["ues"] = 1.0
 
-
+        # Sanity check
+        if len(self.sampled_indices) != len(self.events):
+            print(f"[WARN] sampled_indices length ({len(self.sampled_indices)}) != events length ({len(self.events)})")
 
     def _find_saved_entry_for_event(self, event_id, frame_index=None):
         """
@@ -361,31 +507,33 @@ class EventAnnotator:
                 continue
         return None
 
-
-
     # -------------------------
     # Frame loading and UI init
     # -------------------------
     def _load_current_frame_and_state(self):
         idx = self.sampled_indices[self.current_event_idx]
         self._load_frame_at(idx)
+        # If raw boxes are default zeros, initialize them centered on the image
+        h_img, w_img = self.frame.shape[:2]
+        for k in ("mouth", "ues"):
+            rb = self.raw_boxes[k]
+            if rb["x"] == 0 and rb["y"] == 0:
+                # center raw box in image
+                rb["x"] = max(0, (w_img - rb["w"]) // 2)
+                rb["y"] = max(0, (h_img - rb["h"]) // 2)
+        # Update clamped boxes from raw
+        self._update_clamped_from_raw()
         self._init_from_saved()
 
     def _load_frame_at(self, idx):
         idx = int(idx)
         if idx < MIN_FRAME_SKIP and self.total_frames > MIN_FRAME_SKIP:
             idx = MIN_FRAME_SKIP
-        cap = cv2.VideoCapture(str(self.video_path))
-        cap.set(cv2.CAP_PROP_POS_FRAMES, max(0, min(idx, self.total_frames - 1)))
-        ret, frame = cap.read()
-        cap.release()
+        ret, frame = self._seek_and_read(max(0, min(idx, self.total_frames - 1)))
         if not ret or frame is None:
             found = None
             for i in range(MIN_FRAME_SKIP, min(self.total_frames, MIN_FRAME_SKIP + 200)):
-                cap = cv2.VideoCapture(str(self.video_path))
-                cap.set(cv2.CAP_PROP_POS_FRAMES, i)
-                ret, frame = cap.read()
-                cap.release()
+                ret, frame = self._seek_and_read(i)
                 if ret and frame is not None:
                     found = i
                     break
@@ -394,6 +542,10 @@ class EventAnnotator:
         self.frame = frame
         h_img, w_img = frame.shape[:2]
         for k in ("mouth", "ues"):
+            # ensure raw box sizes are not larger than image (but raw box may be off-frame)
+            self.raw_boxes[k]["w"] = min(self.raw_boxes[k]["w"], max(8, w_img))
+            self.raw_boxes[k]["h"] = min(self.raw_boxes[k]["h"], max(8, h_img))
+            # if clamped boxes are larger than image, clamp them
             if self.boxes[k]["w"] > w_img or self.boxes[k]["h"] > h_img:
                 self.boxes[k]["w"] = min(self.boxes[k]["w"], w_img)
                 self.boxes[k]["h"] = min(self.boxes[k]["h"], h_img)
@@ -431,7 +583,7 @@ class EventAnnotator:
                         if isinstance(vis, dict):
                             # validate values and fallback to visible if missing
                             self.visibility["mouth"] = vis.get("mouth", "visible") if vis.get("mouth") in VISIBILITY_STATES else "visible"
-                            self.visibility["ues"]   = vis.get("ues", "visible")   if vis.get("ues") in VISIBILITY_STATES else "visible"
+                            self.visibility["ues"] = vis.get("ues", "visible") if vis.get("ues") in VISIBILITY_STATES else "visible"
                         else:
                             # Backwards compatibility: old single-string visibility
                             if isinstance(vis, str) and vis in VISIBILITY_STATES:
@@ -440,7 +592,27 @@ class EventAnnotator:
 
                         # Load saved bolus flags (if present)
                         self.bolus_mouth_present[self.current_event_idx] = bool(e.get("bolus_mouth_present", False))
-                        self.bolus_ues_present[self.current_event_idx]   = bool(e.get("bolus_ues_present", False))
+                        self.bolus_ues_present[self.current_event_idx] = bool(e.get("bolus_ues_present", False))
+
+                        # Load raw boxes and off_frame/visible_fraction if present
+                        if "mouth_raw_box" in e:
+                            rx, ry, rw, rh = e.get("mouth_raw_box", [self.boxes["mouth"]["x"], self.boxes["mouth"]["y"], self.boxes["mouth"]["w"], self.boxes["mouth"]["h"]])
+                            self.raw_boxes["mouth"].update({"x": int(rx), "y": int(ry), "w": int(rw), "h": int(rh)})
+                        else:
+                            # set raw to clamped if raw not present
+                            self.raw_boxes["mouth"].update({"x": int(self.boxes["mouth"]["x"]), "y": int(self.boxes["mouth"]["y"]), "w": int(self.boxes["mouth"]["w"]), "h": int(self.boxes["mouth"]["h"])})
+
+                        if "ues_raw_box" in e:
+                            rx, ry, rw, rh = e.get("ues_raw_box", [self.boxes["ues"]["x"], self.boxes["ues"]["y"], self.boxes["ues"]["w"], self.boxes["ues"]["h"]])
+                            self.raw_boxes["ues"].update({"x": int(rx), "y": int(ry), "w": int(rw), "h": int(rh)})
+                        else:
+                            self.raw_boxes["ues"].update({"x": int(self.boxes["ues"]["x"]), "y": int(self.boxes["ues"]["y"]), "w": int(self.boxes["ues"]["w"]), "h": int(self.boxes["ues"]["h"])})
+
+                        # Load off_frame and visible_fraction if present
+                        self.off_frame["mouth"] = bool(e.get("mouth_off_frame", False))
+                        self.off_frame["ues"] = bool(e.get("ues_off_frame", False))
+                        self.visible_fraction["mouth"] = float(e.get("mouth_visible_fraction", self.visible_fraction.get("mouth", 1.0)))
+                        self.visible_fraction["ues"] = float(e.get("ues_visible_fraction", self.visible_fraction.get("ues", 1.0)))
 
                         # Mark this slot as having a saved frame
                         self.last_saved_frame[self.current_event_idx] = cur_frame
@@ -455,7 +627,8 @@ class EventAnnotator:
             self.bolus_ues_present.setdefault(self.current_event_idx, False)
             # visibility already set to visible above
 
-
+        # Ensure clamped boxes reflect raw boxes
+        self._update_clamped_from_raw()
 
     # -------------------------
     # Drawing and UI
@@ -502,6 +675,34 @@ class EventAnnotator:
         box["x"] = max(0, min(box["x"], w_img - box["w"]))
         box["y"] = max(0, min(box["y"], h_img - box["h"]))
 
+    def _update_clamped_from_raw(self):
+        """
+        Compute clamped display boxes from raw_boxes. raw_boxes may be off-frame.
+        The clamped boxes are centered on the raw box center but clamped to image bounds.
+        """
+        if self.frame is None:
+            return
+        h_img, w_img = self.frame.shape[:2]
+        for name in ("mouth", "ues"):
+            rb = self.raw_boxes[name]
+            # Ensure raw box has width/height (fallback to canonical)
+            w = int(rb.get("w", self.canonical_w))
+            h = int(rb.get("h", self.canonical_h))
+            cx = int(rb.get("x", 0) + w // 2)
+            cy = int(rb.get("y", 0) + h // 2)
+            # Build clamped box centered at raw center with canonical size
+            cw = self.canonical_w
+            ch = self.canonical_h
+            x = int(cx - cw // 2)
+            y = int(cy - ch // 2)
+            clamped = {"x": x, "y": y, "w": cw, "h": ch}
+            # clamp to image bounds
+            clamped["w"] = max(8, min(clamped["w"], w_img))
+            clamped["h"] = max(8, min(clamped["h"], h_img))
+            clamped["x"] = max(0, min(clamped["x"], w_img - clamped["w"]))
+            clamped["y"] = max(0, min(clamped["y"], h_img - clamped["h"]))
+            self.boxes[name].update(clamped)
+
     def draw(self):
         self.frame_display = self.frame.copy()
         overlay = self.frame_display.copy()
@@ -535,8 +736,11 @@ class EventAnnotator:
             else:
                 rect_color = color
             cv2.rectangle(self.frame_display, (b["x"], b["y"]), (b["x"] + b["w"], b["y"] + b["h"]), rect_color, thickness)
-            cv2.putText(self.frame_display, f"{name} ({vis_state})", (b["x"], b["y"] - 6),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, rect_color, 2)
+            # Show name, visibility, off_frame and visible_fraction
+            vf = self.visible_fraction.get(name, 1.0)
+            off = "Y" if self.off_frame.get(name, False) else "N"
+            cv2.putText(self.frame_display, f"{name} ({vis_state}) off={off} vf={vf:.2f}", (b["x"], b["y"] - 6),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, rect_color, 2)
 
         cur_frame = self.sampled_indices[self.current_event_idx]
         ev = self.events[self.current_event_idx]
@@ -547,19 +751,18 @@ class EventAnnotator:
         txt = f"{self.video_path.name}  event={ev['event_id']}  frame={cur_frame}/{self.total_frames-1}  active={self.active_box}"
         cv2.putText(self.frame_display, txt, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255), 2)
 
-        # Draw color-coded bolus indicators
+        # Draw color-coded bolus indicators and visibility
         cv2.putText(self.frame_display,
-            f"Mouth bolus: {'YES' if mouth_flag else 'NO'}    vis={self.visibility.get('mouth','visible')}",
-            (10, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 3)
+            f"Mouth bolus: {'YES' if mouth_flag else 'NO'}    vis={self.visibility.get('mouth','visible')}    off={ 'Y' if self.off_frame.get('mouth') else 'N' }    vf={self.visible_fraction.get('mouth',1.0):.2f}",
+            (10, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
 
         cv2.putText(self.frame_display,
-            f"UES bolus: {'YES' if ues_flag else 'NO'}    vis={self.visibility.get('ues','visible')}",
-            (10, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,0,0), 3)
+            f"UES bolus: {'YES' if ues_flag else 'NO'}    vis={self.visibility.get('ues','visible')}    off={ 'Y' if self.off_frame.get('ues') else 'N' }    vf={self.visible_fraction.get('ues',1.0):.2f}",
+            (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,0,0), 2)
 
-        cv2.putText(self.frame_display, "Tab/1/2 switch | +/- resize | v toggle active ROI vis | V toggle both ROIs | r reject | u undo | p saved | b back | < > step | B bolus | n next | N next video | s save | q quit",
-                    (10, 105), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200,200,200), 1)
+        cv2.putText(self.frame_display, "Tab/1/2 switch | +/- resize | v toggle active ROI vis | V toggle both ROIs | o toggle off_frame | [ ] adjust vf | r replace | u undo | p saved | b back | < > step | B bolus | n next | N next video | s save | q quit",
+                    (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200,200,200), 1)
         cv2.imshow(self.window_name, self.frame_display)
-
 
     def _apply_event_defaults(self, event_id: str, slot: int):
         # Normalize event id
@@ -574,22 +777,28 @@ class EventAnnotator:
             self.bolus_mouth_present[slot] = False
             self.bolus_ues_present[slot] = False
 
-
-
     # -------------------------
     # Mouse callback
     # -------------------------
     def on_mouse(self, event, mx, my, flags, param):
+        # Note: mx,my are in window coordinates; original code used them directly.
+        # We keep same behavior: treat mx,my as frame coordinates.
         b = self.boxes[self.active_box]
+        rb = self.raw_boxes[self.active_box]
         if event == cv2.EVENT_LBUTTONDOWN:
             if b["x"] <= mx <= b["x"] + b["w"] and b["y"] <= my <= b["y"] + b["h"]:
                 self.dragging = True
-                self.offset = (mx - b["x"], my - b["y"])
+                self.offset = (mx - rb["x"], my - rb["y"])
         elif event == cv2.EVENT_MOUSEMOVE and self.dragging:
             nx = mx - self.offset[0]
             ny = my - self.offset[1]
-            b["x"], b["y"] = int(nx), int(ny)
-            self._clamp_box(b)
+            # Update raw box position (may be off-frame)
+            rb["x"], rb["y"] = int(nx), int(ny)
+            # Ensure raw box width/height remain reasonable
+            rb["w"] = max(8, int(rb.get("w", self.canonical_w)))
+            rb["h"] = max(8, int(rb.get("h", self.canonical_h)))
+            # Update clamped display boxes
+            self._update_clamped_from_raw()
             self.draw()
         elif event == cv2.EVENT_LBUTTONUP:
             self.dragging = False
@@ -602,33 +811,48 @@ class EventAnnotator:
         if key not in self.rois:
             self.rois[key] = []
         cur_frame = int(self.sampled_indices[self.current_event_idx])
+
+        # Ensure clamped boxes reflect raw boxes before saving
+        self._update_clamped_from_raw()
+
+        mouth_raw = [int(self.raw_boxes["mouth"]["x"]), int(self.raw_boxes["mouth"]["y"]), int(self.raw_boxes["mouth"]["w"]), int(self.raw_boxes["mouth"]["h"])]
+        ues_raw = [int(self.raw_boxes["ues"]["x"]), int(self.raw_boxes["ues"]["y"]), int(self.raw_boxes["ues"]["w"]), int(self.raw_boxes["ues"]["h"])]
+
+        # clamped boxes (canonical size centered on raw center and clamped)
         mouth_box = dict(self.boxes["mouth"])
         ues_box = dict(self.boxes["ues"])
-        for box in (mouth_box, ues_box):
-            cx = box["x"] + box["w"] // 2
-            cy = box["y"] + box["h"] // 2
-            box["w"] = self.canonical_w
-            box["h"] = self.canonical_h
-            box["x"] = int(cx - box["w"] // 2)
-            box["y"] = int(cy - box["h"] // 2)
-            self._clamp_box(box)
-            
+
+        # Compute visible fractions automatically using current frame and raw boxes
+        mouth_vf = compute_visible_fraction_pixel(self.frame, mouth_raw, self.canonical_w, self.canonical_h)
+        ues_vf = compute_visible_fraction_pixel(self.frame, ues_raw, self.canonical_w, self.canonical_h)
+
+        # Update internal visible_fraction values (unless user manually adjusted earlier)
+        self.visible_fraction["mouth"] = mouth_vf if not getattr(self, "_mouth_vf_manual", False) else self.visible_fraction["mouth"]
+        self.visible_fraction["ues"] = ues_vf if not getattr(self, "_ues_vf_manual", False) else self.visible_fraction["ues"]
+
         entry = {
             "event_id": str(self.events[self.current_event_idx]["event_id"]),
             "frame_index": int(cur_frame),
             "mouth": [int(mouth_box["x"]), int(mouth_box["y"]), int(mouth_box["w"]), int(mouth_box["h"])],
             "ues": [int(ues_box["x"]), int(ues_box["y"]), int(ues_box["w"]), int(ues_box["h"])],
+            # Save raw boxes so we preserve annotator intent
+            "mouth_raw_box": [int(mouth_raw[0]), int(mouth_raw[1]), int(mouth_raw[2]), int(mouth_raw[3])],
+            "ues_raw_box": [int(ues_raw[0]), int(ues_raw[1]), int(ues_raw[2]), int(ues_raw[3])],
             # Save per-ROI visibility as a dict for future reads
             "visibility": {
                 "mouth": str(self.visibility.get("mouth", "visible")),
                 "ues":   str(self.visibility.get("ues", "visible"))
             },
+            # Save off_frame flags and visible fractions
+            "mouth_off_frame": bool(self.off_frame.get("mouth", False)),
+            "ues_off_frame": bool(self.off_frame.get("ues", False)),
+            "mouth_visible_fraction": float(self.visible_fraction.get("mouth", 1.0)),
+            "ues_visible_fraction": float(self.visible_fraction.get("ues", 1.0)),
             "bolus_mouth_present": bool(self.bolus_mouth_present.get(self.current_event_idx, False)),
             "bolus_ues_present":   bool(self.bolus_ues_present.get(self.current_event_idx, False)),
             "annotator": "annotator",
             "saved_at": datetime.utcnow().isoformat() + "Z"
         }
-
 
         entries = self.rois.get(key, [])
         replaced = False
@@ -649,15 +873,15 @@ class EventAnnotator:
 
         # Mark this slot as having a saved frame and persist the slot map
         self.last_saved_frame[self.current_event_idx] = int(cur_frame)
+        # Persist mapping using stable keys
         self._persist_event_slot_map()
 
         print(
             f"[SAVED] {key} event {entry['event_id']} frame {cur_frame} "
             f"mouth_bolus={entry['bolus_mouth_present']} "
-            f"ues_bolus={entry['bolus_ues_present']}"
+            f"ues_bolus={entry['bolus_ues_present']} "
+            f"mouth_vf={entry['mouth_visible_fraction']:.2f} ues_vf={entry['ues_visible_fraction']:.2f}"
         )
-
-
 
     # -------------------------
     # Main interactive loop
@@ -685,43 +909,48 @@ class EventAnnotator:
                 self.active_box = "ues"
                 self.draw()
             elif key in (ord('+'), ord('=')):
-                b = self.boxes[self.active_box]
-                cx = b["x"] + b["w"] // 2
-                cy = b["y"] + b["h"] // 2
-                b["w"] = int(b["w"] * 1.1)
-                b["h"] = int(b["h"] * 1.1)
-                b["x"] = cx - b["w"] // 2
-                b["y"] = cy - b["h"] // 2
-                self._clamp_box(b)
+                rb = self.raw_boxes[self.active_box]
+                cx = rb["x"] + rb["w"] // 2
+                cy = rb["y"] + rb["h"] // 2
+                rb["w"] = int(rb["w"] * 1.1)
+                rb["h"] = int(rb["h"] * 1.1)
+                # re-center raw box
+                rb["x"] = int(cx - rb["w"] // 2)
+                rb["y"] = int(cy - rb["h"] // 2)
+                self._update_clamped_from_raw()
                 self.draw()
             elif key in (ord('-'), ord('_')):
-                b = self.boxes[self.active_box]
-                cx = b["x"] + b["w"] // 2
-                cy = b["y"] + b["h"] // 2
-                b["w"] = max(8, int(b["w"] * 0.9))
-                b["h"] = max(8, int(b["h"] * 0.9))
-                b["x"] = cx - b["w"] // 2
-                b["y"] = cy - b["h"] // 2
-                self._clamp_box(b)
+                rb = self.raw_boxes[self.active_box]
+                cx = rb["x"] + rb["w"] // 2
+                cy = rb["y"] + rb["h"] // 2
+                rb["w"] = max(8, int(rb["w"] * 0.9))
+                rb["h"] = max(8, int(rb["h"] * 0.9))
+                rb["x"] = int(cx - rb["w"] // 2)
+                rb["y"] = int(cy - rb["h"] // 2)
+                self._update_clamped_from_raw()
                 self.draw()
             elif key == ord(' '):
                 self.nudge = 10 if self.nudge == 1 else 1
                 print(f"[INFO] nudge set to {self.nudge}")
-            elif key in (81,):
-                self.boxes[self.active_box]["x"] -= self.nudge
-                self._clamp_box(self.boxes[self.active_box])
+            elif key in (81,):  # left arrow
+                rb = self.raw_boxes[self.active_box]
+                rb["x"] -= self.nudge
+                self._update_clamped_from_raw()
                 self.draw()
-            elif key in (83,):
-                self.boxes[self.active_box]["x"] += self.nudge
-                self._clamp_box(self.boxes[self.active_box])
+            elif key in (83,):  # right arrow
+                rb = self.raw_boxes[self.active_box]
+                rb["x"] += self.nudge
+                self._update_clamped_from_raw()
                 self.draw()
-            elif key in (82,):
-                self.boxes[self.active_box]["y"] -= self.nudge
-                self._clamp_box(self.boxes[self.active_box])
+            elif key in (82,):  # up arrow
+                rb = self.raw_boxes[self.active_box]
+                rb["y"] -= self.nudge
+                self._update_clamped_from_raw()
                 self.draw()
-            elif key in (84,):
-                self.boxes[self.active_box]["y"] += self.nudge
-                self._clamp_box(self.boxes[self.active_box])
+            elif key in (84,):  # down arrow
+                rb = self.raw_boxes[self.active_box]
+                rb["y"] += self.nudge
+                self._update_clamped_from_raw()
                 self.draw()
 
             elif key == ord('r'):
@@ -731,9 +960,12 @@ class EventAnnotator:
                 if new_idx is not None:
                     self.slot_history.setdefault(slot, []).append(old_idx)
                     self.sampled_indices[slot] = new_idx
+                    # Persist mapping for this slot's stable key
                     self._persist_event_slot_map()
                     print(f"[INFO] Replaced slot {slot} frame {old_idx} -> {new_idx}")
                     self._load_frame_at(new_idx)
+                    # When loading a new frame, keep raw boxes but ensure clamped boxes update
+                    self._update_clamped_from_raw()
                     self._init_from_saved()
                     self.draw()
                 else:
@@ -810,7 +1042,6 @@ class EventAnnotator:
                 print(f"[INFO] bolus_ues_present -> {self.bolus_ues_present[slot]}")
                 self.draw()
 
-
             elif key == ord('b'):
                 if self.current_event_idx > 0:
                     prev_slot = self.current_event_idx - 1
@@ -839,7 +1070,6 @@ class EventAnnotator:
 
             elif key == ord('V'):
                 # Toggle both ROIs together (advance their states in lockstep)
-                # If both are same state, advance both; otherwise set both to 'visible'
                 m_state = self.visibility.get("mouth", "visible")
                 u_state = self.visibility.get("ues", "visible")
                 if m_state == u_state:
@@ -855,6 +1085,29 @@ class EventAnnotator:
                 print(f"[INFO] visibility mouth -> {self.visibility['mouth']}, ues -> {self.visibility['ues']}")
                 self.draw()
 
+            # Toggle off_frame for active ROI
+            elif key == ord('o'):
+                cur = self.active_box
+                self.off_frame[cur] = not self.off_frame.get(cur, False)
+                # If toggled on and visible_fraction not manually set, set a coarse default
+                if self.off_frame[cur] and not getattr(self, f"_{cur}_vf_manual", False):
+                    self.visible_fraction[cur] = max(0.0, min(1.0, 0.5))
+                print(f"[INFO] off_frame {cur} -> {self.off_frame[cur]}")
+                self.draw()
+
+            # Adjust visible_fraction with [ and ]
+            elif key == ord('['):
+                cur = self.active_box
+                self.visible_fraction[cur] = max(0.0, round(self.visible_fraction.get(cur, 1.0) - 0.1, 2))
+                setattr(self, f"_{cur}_vf_manual", True)
+                print(f"[INFO] visible_fraction {cur} -> {self.visible_fraction[cur]:.2f}")
+                self.draw()
+            elif key == ord(']'):
+                cur = self.active_box
+                self.visible_fraction[cur] = min(1.0, round(self.visible_fraction.get(cur, 1.0) + 0.1, 2))
+                setattr(self, f"_{cur}_vf_manual", True)
+                print(f"[INFO] visible_fraction {cur} -> {self.visible_fraction[cur]:.2f}")
+                self.draw()
 
             elif key == ord('S') or key == ord('s'):
                 self.save_current_event()
@@ -878,9 +1131,11 @@ class EventAnnotator:
                 continue
 
         cv2.destroyWindow(self.window_name)
+        # close persistent capture
+        self._close_video()
 
 # -------------------------
-# Main (no CLI args)
+# Main
 # -------------------------
 def main():
     print("Event ROI annotator (no args).")
@@ -900,6 +1155,7 @@ def main():
 
     videos = sorted(events_by_video.keys())
     for vname in videos:
+        # resolve video path
         vpath = Path(vname)
         if not vpath.exists():
             candidate = VIDEOS_DIR / vname
@@ -909,16 +1165,14 @@ def main():
                 print(f"[WARN] Video file not found for '{vname}'. Tried '{vname}' and '{candidate}'. Skipping.")
                 continue
 
+        # Get real event entries for this video (may be empty list)
         real_events = events_by_video.get(vname, [])
         event_frame_indices = [int(e["frame_index"]) for e in real_events]
 
-        # Sample uniformly with minimum distance 5 frames from any event
-        non_event_samples = sample_non_event_frames_uniform(vpath,
-                                                            event_frame_indices,
-                                                            sample_count=30,
-                                                            min_distance=5,
-                                                            seed=42)
+        # Sample up to 30 non-event frames within the video's frame range
+        non_event_samples = sample_non_event_frames_uniform(vpath, event_frame_indices, sample_count=30, min_distance=5, seed=42)
 
+        # Create synthetic event dicts for non-event frames so the annotator can treat them like events
         synthetic_events = []
         for f in non_event_samples:
             synthetic_events.append({
@@ -928,11 +1182,12 @@ def main():
                 "meta": {}
             })
 
-        # Merge and sort by frame_index
+        # Merge real events and synthetic non-event events, sort by frame_index
         combined_events = sorted(real_events + synthetic_events, key=lambda e: int(e["frame_index"]))
 
         print(f"[INFO] Video: {vname}  real_events={len(real_events)}  non_event_samples={len(synthetic_events)}  total_slots={len(combined_events)}")
 
+        # Instantiate annotator with combined events
         try:
             annot = EventAnnotator(video_path=vpath, events=combined_events, rois_dict=rois, out_path=OUT_JSON)
             annot.run()
@@ -940,12 +1195,12 @@ def main():
             print(f"[ERROR] Failed to annotate {vname}: {ex}")
             continue
 
+    # Save final ROIs to disk (in case annotator didn't already)
     try:
         save_json(OUT_JSON, rois)
         print(f"[INFO] Saved ROIs to {OUT_JSON}")
     except Exception as ex:
         print(f"[WARN] Could not save ROIs: {ex}")
-
 
 if __name__ == "__main__":
     main()
