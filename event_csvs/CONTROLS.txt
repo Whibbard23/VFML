@@ -1,0 +1,209 @@
+CONTROLS.txt
+============
+
+Overview
+
+This document explains the interactive controls, display behavior, frame management, ROI selection, visibility flags, on‑screen information, persistence, and important notes for the event_roi_annotator tool (detector/event_roi_annotator.py). Use this as a quick reference while annotating.
+
+Short key summary
+
+Window / ROI:
+    Tab or 1 = mouth, 2 = ues
+    Mouse drag to move
+    / - resize
+    Space toggles nudge size (1 or 10 px)
+    
+    Visibility:
+        v = toggle active ROI
+        V = toggle both ROIs
+    Bolus:
+
+        f = mouth bolus
+        g = UES bolus
+    Frame / Slot:
+        r = replace sampled frame
+        u = undo
+        p = load last saved
+        < / > = step frame
+        n = next slot
+        N = next video
+    Save / Quit:
+        s = save
+        q or Esc = quit
+
+
+GENERAL CONTROLS
+
+q or Esc        : Quit the annotator and close the current video window.
+s or S          : Save the current slot. Writes ROI boxes, per‑ROI visibility, bolus flags, and updates the persisted slot mapping.
+n               : Save current slot and advance to the next slot.
+N               : Save current slot and exit the current video (move to next video in the batch).
+u               : Undo — revert to the previous sampled frame for the current slot (uses in‑memory slot history).
+r               : Replace — find a replacement frame for the current slot (replacement is persisted).
+p               : Load last saved frame for the current slot (if one exists).
+b               : Back — move to the previous slot (loads saved frame if present).
+>               : Step forward one frame (increments current sampled frame by 1 and persists the change).
+<               : Step backward one frame (decrements current sampled frame by 1, not below MIN_FRAME_SKIP, and persists the change).
+
+DISPLAY AND WINDOW CONTROLS 
+
+Window name     : "Event ROI - <video name>".
+Resizable window: The window is resizable; the annotator computes a display size based on frame size and DISPLAY_SCALE, clamped to screen size minus SCREEN_MARGIN.
+Auto scaling    : Window size is computed to fit the screen while preserving aspect ratio.
+Mouse drag      : Left‑click inside the active ROI box to drag it; release to drop.
+Nudge toggle    : Spacebar toggles nudge between 1 and 10 pixels for keyboard moves.
+Arrow keys      : Move the active ROI by the current nudge amount (left/right/up/down).
+Note            : The help text is drawn on the frame and may overlap content on small screens; resize the window if needed.
+
+FRAME MANAGEMENT & SAMPLING LOGIC
+
+Event frames    : Loaded from cleaned_events.csv. CSV frames are assumed zero‑based.
+Event expansion : Each CSV row expands into up to three events: before_onset, touch_ues, leave_ues.
+Non‑event sampling:
+    Up to 30 non‑event frames are sampled uniformly across the video.
+    Each sampled non‑event frame is at least 5 frames away from any event frame (min_distance).
+    Frames below MIN_FRAME_SKIP are excluded.
+
+    If there are fewer valid non‑event frames than requested, the sampler returns all valid frames sorted.
+    Combined slots  : Real events and synthetic non‑event slots are merged and sorted by frame_index to form the annotation slots.
+    Frame indexing  : All frame indices in CSV, JSON, and internal logic are zero‑based.
+
+ROI SELECTION & EDITING
+
+Switch active ROI:
+    Tab or 1 : select the mouth ROI (active).
+    2        : select the UES ROI (active).
+        Active ROI is drawn with a thicker border.
+    Resize active ROI:
+        =   : enlarge the active ROI (keeps center).
+        _   : shrink the active ROI (keeps center).
+    Mouse editing:
+        Left‑click inside the active ROI to drag and reposition.
+    Centering on save:
+        When saving, ROI boxes are converted to canonical size (DEFAULT_WIDTH x DEFAULT_HEIGHT) and centered on the current box center before clamping to image bounds.
+    Box clamping:
+        Boxes are clamped to image bounds and a minimum size (8 px).
+
+VISIBILITY & BOLUS FLAGS
+
+Per‑ROI visibility:
+    Each ROI has its own visibility state: visible, partial, not_visible.
+    Visibility is saved in JSON as a dict: "visibility": {"mouth": "...", "ues": "..."}.
+    Default behavior:
+        If a frame has no saved annotation, both ROI visibilities default to "visible" when the frame is loaded.
+    Loading saved frames:
+        If a saved JSON entry exists for the slot, per‑ROI visibility is read from it.
+        Backwards compatibility: if saved visibility is a single string, it is applied to both ROIs.
+    Toggle active ROI visibility:
+        v : cycles the active ROI through visible -> partial -> not_visible -> visible.
+    Toggle both ROIs:
+        V : if both ROIs share the same state, advance both to the next state; if mixed, reset both to visible.
+    Bolus flags:
+        f : toggle mouth bolus (bolus_mouth_present).
+        g : toggle UES bolus (bolus_ues_present).
+        Bolus flags are saved per slot.
+
+SAVING, PERSISTANCE, & STABLE KEYS
+
+Save format:
+    Annotations are written to event_rois.json (path configured by OUT_JSON).
+    Each saved entry contains: event_id, frame_index, mouth, ues, visibility, bolus flags, annotator, saved_at.
+    Stable slot mapping:
+        The annotator persists a slot map under "event_slot_map" keyed by video name.
+        Each slot uses a stable key:
+            Real events: "<event_id>:<frame_index>" (e.g., "before_onset:1234")
+            Synthetic non‑events: "non_event:<frame_index>"
+        The mapping stores the currently sampled/saved frame index for that slot.
+        When mapping is updated:
+            On save (s): mapping for that slot's stable key is updated to the saved frame index.
+            On replace (r): mapping is updated to the replacement frame.
+            On manual stepping (< or >): mapping is updated when the change is persisted.
+            Re-sampling note:
+                If you re-run sampling and a previous synthetic key (non_event:<frame_index>) no longer exists in the combined event list, the old mapping remains in JSON but will not be automatically re-associated.
+
+On‑screen information
+
+Top line:
+    "<video name>  event=<event_id>  frame=<current>/<total_frames-1>  active=<active_box>"
+    Bolus and visibility lines:
+        "Mouth bolus: YES/NO    vis=<mouth visibility>"
+        "UES bolus: YES/NO      vis=<ues visibility>"
+
+Help line:
+        A short summary of keybindings is shown near the bottom of the frame.
+
+FRAME REPLACEMENT & HISTORY
+
+Replace sampled frame:
+    r : finds a replacement frame that is not black and not already sampled; replacement is persisted to the stable slot map.
+    Slot history:
+        Each slot keeps an in‑memory history of previous sampled indices. Use u to undo to the previous sampled index. History is not persisted across sessions.
+    
+    Load last saved:
+        p : loads the last saved frame for the slot (if any) and sets it as the current sampled index.
+
+PERFORMANCE & RELIABILITY
+
+Persistent VideoCapture:
+    The annotator keeps a single cv2.VideoCapture open for the session to improve performance on network drives.
+    Reopen on failure:
+
+    If a read fails, the annotator attempts to find a readable frame in a small search window. If the capture becomes unusable, the annotator will raise an error.
+    Frame read fallback:
+
+    If the requested frame cannot be read, the annotator searches forward from MIN_FRAME_SKIP up to MIN_FRAME_SKIP + 200 to find a readable frame before failing.
+
+JSON COMPATIBILITY & MIGRATION
+
+Visibility format:
+    The annotator writes visibility as a per‑ROI dict. The loader accepts the old single‑string visibility and maps it to both ROIs for backward compatibility.
+    Downstream tools:
+
+    Update any code that reads event_rois.json to expect visibility as a dict with keys "mouth" and "ues".
+
+TROUBLESHOOTING & TIPS
+
+If frames appear black or unreadable:
+    Try r to replace the slot frame or check network connectivity to the video share.
+
+If seeking is slow:
+    Network latency is the main factor. Annotate in contiguous groups of frames where possible.
+
+If saved annotations do not reappear:
+    Confirm event_rois.json is being written to the expected OUT_JSON path and that the CSV "video" values match the AVI filenames (basename match).
+
+If slot mapping seems shifted:
+    This should not happen with stable keys. If you changed the CSV or event frame indices, the stable key will differ and the slot will be treated as new.
+
+RECOMMENDED WORKFLOW
+    Run generate_cleaned_events.py to produce cleaned_events.csv (ensures zero‑based frames).
+    Run event_roi_annotator.py. The annotator will load events and sample non‑event frames.
+        For each slot: adjust boxes, toggle visibility and bolus flags as needed, then save (s).
+        Use n to advance through slots; use r to replace poor frames; use u to undo.
+        After finishing a video, confirm event_rois.json contains entries and event_slot_map mappings for that video.
+
+EXAMPLE JSON SNIPPET
+
+Saved annotation entry example for one slot:
+{
+"event_id": "before_onset",
+"frame_index": 1234,
+"mouth": [100, 80, 128, 128],
+"ues": [220, 90, 128, 128],
+"visibility": {"mouth": "visible", "ues": "partial"},
+"bolus_mouth_present": true,
+"bolus_ues_present": false,
+"annotator": "annotator",
+"saved_at": "2026-03-17T15:32:00Z"
+}
+
+Stable slot map example:
+"event_slot_map": {
+"AD128.avi": {
+"before_onset:1234": 1234,
+"non_event:500": 500
+}
+}
+
+Final notes
+- The annotator assumes zero‑based frames and that CSV "video" values match AVI filenames (basename).

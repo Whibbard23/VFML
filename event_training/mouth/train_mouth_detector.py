@@ -7,6 +7,7 @@ CPU-only framewise baseline training for swallow-onset detection.
 Features:
 - Reads labels from ../../event_csvs/mouth_frame_label_table.csv by default.
 - Loads per-frame JPEGs (preferred) or .npy normalized tensors as fallback.
+- Caches decoded JPEGs as .npy (HWC uint8) to avoid repeated JPEG decode (disabled by default in this variant).
 - Balanced minibatches via BalancedBatchSampler (positive oversampling).
 - Moderate class weight in BCEWithLogitsLoss.
 - Augmentations: brightness +-20%, rotation +-5 degrees, random scale +-5% (no horizontal flips).
@@ -18,21 +19,6 @@ Features:
 - Checkpointing and best-model saving.
 - CPU-only (no CUDA usage).
 
-USAGE: (Powershell)
-  python event_training/mouth/train_mouth_detector.py `
-    --label-csv "event_csvs/mouth_frame_label_table.csv" `
-    --crops-root "E:/VF ML Crops" `
-    --out-dir "C:/Users/Connor Lab/Desktop/VFML/event_training/mouth/models/event_baseline" `
-    --epochs 30 `
-    --batch-size 64 `
-    --img-size 128 `
-    --lr 1e-4 `
-    --weight-decay 1e-4 `
-    --backbone resnet18 `
-    --device cpu `
-    --num-workers 0 `
-    --patience 6 `
-    --target-recall 0.995
 """
 from pathlib import Path
 import argparse
@@ -41,6 +27,7 @@ import json
 import os
 import random
 import math
+import sys
 from typing import Iterator, List
 from collections import Counter
 
@@ -52,7 +39,6 @@ from sklearn.metrics import precision_recall_curve, precision_recall_fscore_supp
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-from torch.utils.data import WeightedRandomSampler
 import torchvision.transforms as T
 import torchvision.models as models
 
@@ -64,6 +50,40 @@ try:
 except Exception:
     _HAS_WEIGHTS_ENUM = False
 
+
+# -------------------------
+# Small helpers for safe saving
+# -------------------------
+def _safe_torch_save(obj, path: Path):
+    """
+    Atomically save a torch object to `path` by writing to a temporary file and renaming.
+    Prints success or error so failures are visible in logs.
+    """
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    try:
+        torch.save(obj, tmp)
+        tmp.replace(path)
+        print(f"Saved: {path}")
+    except Exception as e:
+        print(f"ERROR saving {path}: {type(e).__name__}: {e}")
+        if tmp.exists():
+            try:
+                tmp.unlink()
+            except Exception:
+                pass
+
+
+# -------------------------
+# Safe exists helper (used in __getitem__ to avoid a single bad stat from crashing)
+# -------------------------
+def _safe_exists(p: Path):
+    try:
+        return p.exists()
+    except Exception as e:
+        print(f"Warning: cannot stat path {p!s}: {type(e).__name__}: {e}", file=sys.stderr)
+        return False
+
+
 # -------------------------
 # Dataset
 # -------------------------
@@ -72,20 +92,23 @@ FRAME_NAME = "frame_{:06d}"
 
 class MouthFrameDataset(Dataset):
     """
-    Loads samples listed in mouth_frame_label_table.csv for a given split (train/val).
-    Prefers JPEGs under <crops_root>/<video>/crops/mouth/frame_XXXXXX.jpg
-    Falls back to .npy under <crops_root>/<video>/crops_normalized/mouth/frame_XXXXXX.npy
+    Lazy-check variant:
+    - During __init__, we only parse the CSV and store candidate paths (no expensive stat calls).
+    - Existence checks are performed in __getitem__ using a safe wrapper to avoid startup stalls.
+    - This reduces startup time for very large CSVs or slow filesystems.
     """
-
-    def __init__(self, label_csv: Path, crops_root: Path, split: str, transform=None, prefer_jpeg=True):
+    def __init__(self, label_csv: Path, crops_root: Path, split: str, transform=None, prefer_jpeg=True, cache_enabled=False):
         self.crops_root = Path(crops_root)
         self.transform = transform
         self.prefer_jpeg = prefer_jpeg
-        self.samples = []  # tuples: (video, frame_int, label, jpeg_path or None, npy_path or None)
+        self.cache_enabled = bool(cache_enabled)
+        self.split = split
+        self.samples = []  # tuples: (video, frame_int, label, jpeg_path, npy_path)
 
         if not Path(label_csv).exists():
             raise FileNotFoundError(f"Label CSV not found: {label_csv}")
 
+        # Lazy: store candidate paths without calling .exists() here to avoid long startup
         with open(label_csv, "r", newline="") as f:
             reader = csv.DictReader(f)
             for r in reader:
@@ -98,12 +121,8 @@ class MouthFrameDataset(Dataset):
                 lbl = int(r["label"])
                 jpeg_path = self.crops_root / vid / "crops" / "mouth" / f"{FRAME_NAME.format(frm)}.jpg"
                 npy_path = self.crops_root / vid / "crops_normalized" / "mouth" / f"{FRAME_NAME.format(frm)}.npy"
-                jpeg_exists = jpeg_path.exists()
-                npy_exists = npy_path.exists()
-                if not jpeg_exists and not npy_exists:
-                    # skip missing files silently (user can inspect logs)
-                    continue
-                self.samples.append((vid, frm, lbl, jpeg_path if jpeg_exists else None, npy_path if npy_exists else None))
+                # store both candidate paths; existence will be checked lazily in __getitem__
+                self.samples.append((vid, frm, lbl, jpeg_path, npy_path))
 
         if len(self.samples) == 0:
             raise RuntimeError(f"No samples found for split={split} (checked {label_csv} and {crops_root})")
@@ -111,26 +130,64 @@ class MouthFrameDataset(Dataset):
     def __len__(self):
         return len(self.samples)
 
+    def _cache_path_for(self, vid: str, frm: int) -> Path:
+        # cache under crops_root/.cache_tensors/<split>/<video>/mouth/frame_XXXXXX.npy
+        cache_root = self.crops_root / ".cache_tensors" / self.split / vid / "mouth"
+        cache_root.mkdir(parents=True, exist_ok=True)
+        return cache_root / f"{FRAME_NAME.format(frm)}.npy"
+
     def __getitem__(self, idx):
         vid, frm, lbl, jpeg_path, npy_path = self.samples[idx]
-        if jpeg_path is not None and self.prefer_jpeg:
-            img = Image.open(jpeg_path).convert("RGB")
+
+        # First, prefer precomputed normalized .npy if it actually exists
+        if npy_path is not None and _safe_exists(npy_path):
+            try:
+                arr = np.load(npy_path)  # expected CHW or HWC float32
+                t = torch.from_numpy(arr).float()
+                # If HWC convert to CHW
+                if t.ndim == 3 and t.shape[2] == 3:
+                    t = t.permute(2, 0, 1)
+                t = self._tensor_augment(t)
+                return t, torch.tensor(lbl, dtype=torch.float32)
+            except Exception as e:
+                # If loading fails, warn and fall through to JPEG path
+                print(f"Warning: failed to load npy {npy_path}: {type(e).__name__}: {e}", file=sys.stderr)
+
+        # Otherwise handle JPEG path with optional caching of decoded RGB HWC uint8
+        if jpeg_path is not None and _safe_exists(jpeg_path) and self.prefer_jpeg:
+            cache_path = self._cache_path_for(vid, frm) if self.cache_enabled else None
+            if cache_path is not None and _safe_exists(cache_path):
+                try:
+                    arr = np.load(cache_path)
+                    img = Image.fromarray(arr)
+                except Exception as e:
+                    print(f"Warning: failed to load cache {cache_path}: {type(e).__name__}: {e}", file=sys.stderr)
+                    img = None
+            else:
+                img = None
+
+            if img is None:
+                try:
+                    img = Image.open(jpeg_path).convert("RGB")
+                    if cache_path is not None:
+                        try:
+                            arr = np.array(img)
+                            np.save(cache_path, arr, allow_pickle=False)
+                        except Exception:
+                            # caching is best-effort; ignore failures
+                            pass
+                except Exception as e:
+                    # If JPEG decode fails, raise a controlled error so the training loop can handle it
+                    raise RuntimeError(f"Failed to open JPEG {jpeg_path}: {type(e).__name__}: {e}")
+
             if self.transform is not None:
                 img = self.transform(img)
             else:
                 img = T.ToTensor()(img)
             return img, torch.tensor(lbl, dtype=torch.float32)
-        elif npy_path is not None:
-            arr = np.load(npy_path)  # expected CHW or HWC float32
-            t = torch.from_numpy(arr).float()
-            # If HWC convert to CHW
-            if t.ndim == 3 and t.shape[2] == 3:
-                t = t.permute(2, 0, 1)
-            # If values are normalized (ImageNet), we still apply simple tensor-space augmentations:
-            t = self._tensor_augment(t)
-            return t, torch.tensor(lbl, dtype=torch.float32)
-        else:
-            raise RuntimeError("No image for sample")
+
+        # If neither file exists or both failed to load, raise a clear error for this sample
+        raise RuntimeError(f"No image available for sample vid={vid} frame={frm} (checked jpeg={jpeg_path}, npy={npy_path})")
 
     def _tensor_augment(self, t):
         # t: CHW tensor, values may be normalized; apply mild brightness scaling only
@@ -271,31 +328,32 @@ def save_pr_curve(y_true, y_scores, out_path: Path, epoch: int):
     return precision, recall, thresholds
 
 
-def select_threshold_for_target_recall(y_true, y_scores, target_recall=0.995):
+def select_threshold_for_target_recall_safe(y_true, y_scores, target_recall=0.995, min_threshold=1e-2):
     """
-    Choose threshold that achieves recall >= target_recall and maximizes precision.
-    If none meet target_recall, choose threshold that maximizes F1.
-    Returns: chosen_threshold, info_dict
+    Prefer thresholds that meet target_recall but avoid returning 0.0.
+    If the best threshold < min_threshold or no threshold meets target_recall,
+    fall back to threshold that maximizes F1 (with thr >= min_threshold if possible).
     """
     precision, recall, thresholds = precision_recall_curve(y_true, y_scores)
     best_thresh = None
     best_prec = -1.0
     best_rec = 0.0
-    # thresholds length = n-1 where n = len(precision)
-    for i, thr in enumerate(np.append(thresholds, 1.0)):
+    # thresholds correspond to precision[1:], recall[1:]
+    thr_array = np.append(thresholds, 1.0)
+    for i, thr_val in enumerate(thr_array):
         prec = precision[i + 1] if i + 1 < len(precision) else precision[-1]
         rec = recall[i + 1] if i + 1 < len(recall) else recall[-1]
-        if rec >= target_recall and prec > best_prec:
+        if rec >= target_recall and prec > best_prec and thr_val >= min_threshold:
             best_prec = prec
-            best_thresh = thresholds[i] if i < len(thresholds) else 1.0
+            best_thresh = float(thr_val)
             best_rec = rec
 
     if best_thresh is not None:
-        return float(best_thresh), {"mode": "target_recall", "precision": float(best_prec), "recall": float(best_rec)}
+        return best_thresh, {"mode": "target_recall", "precision": float(best_prec), "recall": float(best_rec)}
 
-    # fallback: maximize F1
-    f1_scores = []
+    # fallback: maximize F1 but prefer thresholds >= min_threshold
     thr_list = list(thresholds) + [1.0]
+    f1_scores = []
     for i, thr in enumerate(thr_list):
         prec = precision[i + 1] if i + 1 < len(precision) else precision[-1]
         rec = recall[i + 1] if i + 1 < len(recall) else recall[-1]
@@ -303,12 +361,61 @@ def select_threshold_for_target_recall(y_true, y_scores, target_recall=0.995):
             f1 = 0.0
         else:
             f1 = 2 * prec * rec / (prec + rec)
-        f1_scores.append(f1)
-    best_idx = int(np.argmax(f1_scores))
-    chosen_thr = thr_list[best_idx]
-    chosen_prec = precision[best_idx + 1] if best_idx + 1 < len(precision) else precision[-1]
-    chosen_rec = recall[best_idx + 1] if best_idx + 1 < len(recall) else recall[-1]
-    return float(chosen_thr), {"mode": "max_f1", "precision": float(chosen_prec), "recall": float(chosen_rec), "f1": float(f1_scores[best_idx])}
+        f1_scores.append((f1, thr))
+
+    # prefer best F1 with thr >= min_threshold
+    f1_scores_sorted = sorted(f1_scores, key=lambda x: x[0], reverse=True)
+    for f1, thr in f1_scores_sorted:
+        if thr >= min_threshold:
+            preds = (y_scores >= thr).astype(int)
+            p, r, f1_val, _ = precision_recall_fscore_support(y_true, preds, average="binary", zero_division=0)
+            return float(thr), {"mode": "max_f1", "precision": float(p), "recall": float(r), "f1": float(f1_val)}
+
+    # last resort: return the absolute best F1 even if thr < min_threshold
+    best_f1, best_thr = max(f1_scores, key=lambda x: x[0])
+    preds = (y_scores >= best_thr).astype(int)
+    p, r, f1_val, _ = precision_recall_fscore_support(y_true, preds, average="binary", zero_division=0)
+    return float(best_thr), {"mode": "max_f1_unconstrained", "precision": float(p), "recall": float(r), "f1": float(f1_val)}
+
+
+def evaluate_on_balanced_subset(model, val_loader, device, max_neg_per_pos=5):
+    """
+    Build a balanced validation set by sampling up to max_neg_per_pos negatives per positive.
+    Returns: all_labels, all_probs (numpy arrays)
+    """
+    model.eval()
+    pos_samples = []
+    neg_samples = []
+    with torch.no_grad():
+        for imgs, labels in val_loader:
+            imgs = imgs.to(device)
+            labels = labels.to(device)
+            logits = model(imgs)
+            probs = torch.sigmoid(logits).cpu().numpy().ravel()
+            labs = labels.cpu().numpy().ravel().astype(int)
+            for p, l in zip(probs, labs):
+                if l == 1:
+                    pos_samples.append((p, l))
+                else:
+                    neg_samples.append((p, l))
+
+    if len(pos_samples) == 0:
+        # fallback to full validation if no positives
+        combined = pos_samples + neg_samples
+        all_probs = np.array([x[0] for x in combined])
+        all_labels = np.array([x[1] for x in combined])
+        return all_labels, all_probs
+
+    # sample negatives to match positives up to max_neg_per_pos
+    n_pos = len(pos_samples)
+    n_neg_target = min(len(neg_samples), n_pos * max_neg_per_pos)
+    neg_sampled = random.sample(neg_samples, n_neg_target) if n_neg_target < len(neg_samples) else neg_samples
+
+    combined = pos_samples + neg_sampled
+    random.shuffle(combined)
+    all_probs = np.array([x[0] for x in combined])
+    all_labels = np.array([x[1] for x in combined])
+    return all_labels, all_probs
 
 
 # -------------------------
@@ -319,16 +426,23 @@ def train(args):
     device = torch.device("cpu")
     print("Device: cpu (CPU-only mode)")
 
+    # Limit PyTorch thread usage to avoid BLAS contention on multi-core CPUs
+    torch.set_num_threads(1)
+    torch.set_num_interop_threads(1)
+
     label_csv = Path(args.label_csv)
     crops_root = Path(args.crops_root)
     out_dir = Path(args.out_dir)
+    out_dir = out_dir.expanduser().resolve()
+    print("Outputs will be written to:", out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     train_transform = make_transforms(img_size=args.img_size, train=True)
     val_transform = make_transforms(img_size=args.img_size, train=False)
 
-    train_ds = MouthFrameDataset(label_csv, crops_root, split="train", transform=train_transform)
-    val_ds = MouthFrameDataset(label_csv, crops_root, split="val", transform=val_transform)
+    # Enable caching in dataset is disabled here for faster startup; set cache_enabled=True if you want caching.
+    train_ds = MouthFrameDataset(label_csv, crops_root, split="train", transform=train_transform, prefer_jpeg=True, cache_enabled=False)
+    val_ds = MouthFrameDataset(label_csv, crops_root, split="val", transform=val_transform, prefer_jpeg=True, cache_enabled=False)
 
     # Build sampler to oversample positives
     train_labels = [s[2] for s in train_ds.samples]
@@ -343,21 +457,42 @@ def train(args):
     else:
         print(f"Positive samples: {pos}  Negative samples: {neg}")
 
-    # choose pos_per_batch: at least 1, but not more than batch_size-1
-    # using the increased heuristic: batch_size // 4
-    pos_per_batch = max(1, min(args.batch_size - 1, max(1, args.batch_size // 8)))
+    # choose pos_per_batch: conservative default to reduce overfitting to positives
+    # cap at 2 positives per batch for batch_size >= 16 (conservative)
+    pos_per_batch = max(1, min(2, max(1, args.batch_size // 32)))
     print(f"Using BalancedBatchSampler with pos_per_batch={pos_per_batch} (batch_size={args.batch_size})")
 
     # BalancedBatchSampler will oversample positives (with replacement) and sample negatives without replacement
     balanced_sampler = BalancedBatchSampler(train_labels_arr, batch_size=args.batch_size, pos_per_batch=pos_per_batch)
 
-    # Use batch_sampler argument (do not pass sampler or shuffle)
-    train_loader = DataLoader(train_ds, batch_sampler=balanced_sampler,
-                              num_workers=args.num_workers, collate_fn=collate_batch)
-    val_loader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False,
-                            num_workers=args.num_workers, collate_fn=collate_batch)
+    # DataLoader parallelism: if user passed num_workers <= 0, pick a modest default
+    if args.num_workers and args.num_workers > 0:
+        num_workers = args.num_workers
+    else:
+        # choose up to half of CPU cores but at least 1, cap at 8
+        num_workers = max(1, min(8, max(1, (os.cpu_count() or 2) // 2)))
 
-    print("DataLoader created. train_len=", len(train_ds), "val_len=", len(val_ds))
+    # Use batch_sampler argument (do not pass sampler or shuffle)
+    train_loader = DataLoader(
+        train_ds,
+        batch_sampler=balanced_sampler,
+        num_workers=num_workers,
+        persistent_workers=True,
+        prefetch_factor=2,
+        collate_fn=collate_batch,
+    )
+
+    val_loader = DataLoader(
+        val_ds,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=max(1, num_workers // 2),
+        persistent_workers=True,
+        prefetch_factor=2,
+        collate_fn=collate_batch,
+    )
+
+    print("DataLoader created. train_len=", len(train_ds), "val_len=", len(val_ds), "num_workers=", num_workers)
 
     # prepare per-100-batch average train loss CSV (open once, close after training)
     train_loss_avg_csv = out_dir / "train_loss_avg_per_100.csv"
@@ -368,11 +503,8 @@ def train(args):
 
     model = build_model(backbone=args.backbone, pretrained=True).to(device)
 
-    # Moderate pos_weight (suggested baseline). This is intentionally a moderate fixed value
-    # to avoid extreme loss amplification when positives are oversampled.
-    pos_weight = 3.0
-    # If you prefer to use the computed heuristic but cap it, you could do:
-    # pos_weight = min(compute_pos_weight(train_labels_arr), 10.0)
+    # Conservative pos_weight to avoid extreme amplification early
+    pos_weight = 1.0
     print(f"Using pos_weight={pos_weight:.4f} for BCEWithLogitsLoss")
     pos_weight_tensor = torch.tensor([pos_weight], dtype=torch.float32).to(device)
     criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight_tensor)
@@ -449,97 +581,147 @@ def train(args):
 
         train_loss = running_loss / len(train_loader.dataset)
 
-        # Validation
-        model.eval()
-        all_logits = []
-        all_labels = []
+        # Validation: evaluate on balanced subset for threshold selection and diagnostics
+        all_labels_bal, probs_bal = evaluate_on_balanced_subset(model, val_loader, device, max_neg_per_pos=5)
+
+        # Save validation logits/probs for later inspection
+        np.save(out_dir / f"val_logits_epoch_{epoch:03d}.npy", {"labels": all_labels_bal, "probs": probs_bal}, allow_pickle=True)
+
+        # PR curve and safer threshold selection on balanced subset
+        pr_png = out_dir / f"pr_epoch_{epoch:03d}.png"
+        precision, recall, thresholds = save_pr_curve(all_labels_bal, probs_bal, pr_png, epoch)
+        chosen_thr, info = select_threshold_for_target_recall_safe(all_labels_bal, probs_bal, target_recall=args.target_recall, min_threshold=1e-2)
+
+        # compute metrics at chosen threshold (balanced)
+        preds_bal = (probs_bal >= chosen_thr).astype(int)
+        p_bal, r_bal, f1_bal, _ = precision_recall_fscore_support(all_labels_bal, preds_bal, average="binary", zero_division=0)
+
+        # Also compute metrics at thr=0.0 and thr=0.5 for diagnostics (on balanced subset)
+        preds_thr0 = (probs_bal >= 0.0).astype(int)
+        p0, r0, f10, _ = precision_recall_fscore_support(all_labels_bal, preds_thr0, average="binary", zero_division=0)
+        preds_thr05 = (probs_bal >= 0.5).astype(int)
+        p05, r05, f105, _ = precision_recall_fscore_support(all_labels_bal, preds_thr05, average="binary", zero_division=0)
+
+        # For backward compatibility with existing logs, also compute metrics on full validation (unbalanced)
+        all_logits_full = []
+        all_labels_full = []
         with torch.no_grad():
             for imgs, labels in val_loader:
                 imgs = imgs.to(device)
                 labels = labels.to(device)
                 logits = model(imgs)
-                all_logits.append(logits.cpu().numpy().ravel())
-                all_labels.append(labels.cpu().numpy().ravel())
-        all_logits = np.concatenate(all_logits)
-        all_labels = np.concatenate(all_labels).astype(int)
-        probs = 1.0 / (1.0 + np.exp(-all_logits))
+                all_logits_full.append(logits.cpu().numpy().ravel())
+                all_labels_full.append(labels.cpu().numpy().ravel())
+        if len(all_logits_full) > 0:
+            all_logits_full = np.concatenate(all_logits_full)
+            all_labels_full = np.concatenate(all_labels_full).astype(int)
+            probs_full = 1.0 / (1.0 + np.exp(-all_logits_full))
+            preds_full = (probs_full >= chosen_thr).astype(int)
+            p_full, r_full, f1_full, _ = precision_recall_fscore_support(all_labels_full, preds_full, average="binary", zero_division=0)
+        else:
+            p_full = r_full = f1_full = 0.0
 
-        # PR curve and threshold selection
-        pr_png = out_dir / f"pr_epoch_{epoch:03d}.png"
-        precision, recall, thresholds = save_pr_curve(all_labels, probs, pr_png, epoch)
-        chosen_thr, info = select_threshold_for_target_recall(all_labels, probs, target_recall=args.target_recall)
+        # scheduler step on balanced F1 (prefer balanced signal for LR scheduling)
+        scheduler.step(f1_bal)
 
-        # compute metrics at chosen threshold
-        preds = (probs >= chosen_thr).astype(int)
-        p, r, f1, _ = precision_recall_fscore_support(all_labels, preds, average="binary", zero_division=0)
+        print(
+            f"Epoch {epoch:03d}  train_loss={train_loss:.6f}  "
+            f"bal_f1={f1_bal:.4f} bal_prec={p_bal:.4f} bal_rec={r_bal:.4f} "
+            f"thr={chosen_thr:.6f} mode={info.get('mode')}"
+        )
+        print(
+            f"  diagnostics: thr0 -> f1={f10:.4f} prec={p0:.4f} rec={r0:.4f}; "
+            f"thr0.5 -> f1={f105:.4f} prec={p05:.4f} rec={r05:.4f}; "
+            f"full_unbalanced -> f1={f1_full:.4f} prec={p_full:.4f} rec={r_full:.4f}"
+        )
 
-        # scheduler step on val F1
-        scheduler.step(f1)
-
-        print(f"Epoch {epoch:03d}  train_loss={train_loss:.4f}  val_f1={f1:.4f}  val_prec={p:.4f}  val_rec={r:.4f}  thr={chosen_thr:.4f}  mode={info.get('mode')}")
-
-        # save epoch metrics
+        # save epoch metrics (include balanced and full metrics)
         metrics_log.append({
             "epoch": epoch,
             "train_loss": float(train_loss),
-            "val_f1": float(f1),
-            "val_precision": float(p),
-            "val_recall": float(r),
+            "bal_f1": float(f1_bal),
+            "bal_precision": float(p_bal),
+            "bal_recall": float(r_bal),
             "chosen_threshold": float(chosen_thr),
             "threshold_mode": info.get("mode"),
-            "threshold_info": info,
+            "diag_thr0_f1": float(f10),
+            "diag_thr05_f1": float(f105),
+            "full_val_f1": float(f1_full),
+            "full_val_precision": float(p_full),
+            "full_val_recall": float(r_full),
         })
-        # write metrics CSV each epoch
+        # write metrics CSV each epoch (extended schema)
         metrics_csv = out_dir / "val_metrics.csv"
-        write_metrics_csv(metrics_csv, metrics_log)
+        fieldnames = [
+            "epoch", "train_loss", "bal_f1", "bal_precision", "bal_recall",
+            "chosen_threshold", "threshold_mode", "diag_thr0_f1", "diag_thr05_f1",
+            "full_val_f1", "full_val_precision", "full_val_recall"
+        ]
+        with metrics_csv.open("w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for m in metrics_log:
+                writer.writerow({
+                    "epoch": m["epoch"],
+                    "train_loss": m["train_loss"],
+                    "bal_f1": m["bal_f1"],
+                    "bal_precision": m["bal_precision"],
+                    "bal_recall": m["bal_recall"],
+                    "chosen_threshold": m["chosen_threshold"],
+                    "threshold_mode": m["threshold_mode"],
+                    "diag_thr0_f1": m["diag_thr0_f1"],
+                    "diag_thr05_f1": m["diag_thr05_f1"],
+                    "full_val_f1": m["full_val_f1"],
+                    "full_val_precision": m["full_val_precision"],
+                    "full_val_recall": m["full_val_recall"],
+                })
 
         # save threshold info JSON
         thr_json = out_dir / f"threshold_epoch_{epoch:03d}.json"
         with thr_json.open("w") as fh:
             json.dump({"threshold": chosen_thr, "info": info}, fh, indent=2)
 
-        # checkpoint every epoch
+        # checkpoint every epoch (use atomic safe save)
         ckpt = out_dir / f"ckpt_epoch_{epoch:03d}.pth"
-        torch.save({
+        _safe_torch_save({
             "epoch": epoch,
             "model_state": model.state_dict(),
             "optimizer_state": optimizer.state_dict(),
-            "val_f1": f1,
+            "bal_f1": f1_bal,
             "chosen_threshold": chosen_thr,
             "threshold_info": info,
         }, ckpt)
 
-        # update best
-        if f1 > best_val_f1:
-            best_val_f1 = f1
+        # update best (use balanced F1 as primary)
+        if f1_bal > best_val_f1:
+            best_val_f1 = f1_bal
             best_epoch = epoch
             best_ckpt = out_dir / "best.pth"
-            torch.save({
+            _safe_torch_save({
                 "epoch": epoch,
                 "model_state": model.state_dict(),
                 "optimizer_state": optimizer.state_dict(),
-                "val_f1": f1,
+                "bal_f1": f1_bal,
                 "chosen_threshold": chosen_thr,
                 "threshold_info": info,
             }, best_ckpt)
-            print(f"Saved best checkpoint to {best_ckpt} (val_f1={f1:.4f})")
+            print(f"Saved best checkpoint to {best_ckpt} (bal_f1={f1_bal:.4f})")
 
-        # early stopping
+        # early stopping (based on balanced F1)
         if epoch - best_epoch >= args.patience:
             print(f"No improvement for {args.patience} epochs (best epoch {best_epoch}), stopping.")
             break
 
     # final summary
-    print("Training complete. Best epoch:", best_epoch, "best_val_f1:", best_val_f1)
+    print("Training complete. Best epoch:", best_epoch, "best_bal_f1:", best_val_f1)
     final_json = out_dir / "final_summary.json"
     with final_json.open("w") as fh:
-        json.dump({"best_epoch": best_epoch, "best_val_f1": best_val_f1, "metrics": metrics_log}, fh, indent=2)
+        json.dump({"best_epoch": best_epoch, "best_bal_f1": best_val_f1, "metrics": metrics_log}, fh, indent=2)
 
     # close averaged-loss CSV handle
     train_loss_avg_fh.close()
 
     return out_dir
-
 
 
 def collate_batch(batch):
@@ -571,9 +753,9 @@ def write_metrics_csv(path: Path, metrics_list):
 # -------------------------
 def parse_args():
     p = argparse.ArgumentParser(description="Train framewise mouth event detector (baseline) - CPU only")
-    p.add_argument("--label-csv", default="../../event_csvs/mouth_frame_label_table.csv", help="Path to mouth_frame_label_table.csv")
+    p.add_argument("--label-csv", default="event_csvs/mouth_frame_label_table.csv", help="Path to mouth_frame_label_table.csv")
     p.add_argument("--crops-root", default="E:/VF ML Crops", help="Root folder containing per-video crop folders")
-    p.add_argument("--out-dir", default="../../models/event_baseline", help="Output directory for models and metrics")
+    p.add_argument("--out-dir", default="event_training/mouth/models/event_baseline", help="Output directory for models and metrics")
     p.add_argument("--epochs", type=int, default=30)
     p.add_argument("--batch-size", type=int, default=64)
     p.add_argument("--img-size", type=int, default=128)
@@ -581,7 +763,7 @@ def parse_args():
     p.add_argument("--weight-decay", type=float, default=1e-4)
     p.add_argument("--backbone", default="resnet18")
     p.add_argument("--device", default="cpu", help="Ignored; script runs CPU-only")
-    p.add_argument("--num-workers", type=int, default=0, help="DataLoader num_workers (0 recommended for CPU-only)")
+    p.add_argument("--num-workers", type=int, default=0, help="DataLoader num_workers (0 recommended for CPU-only). If 0, script will pick a modest default.")
     p.add_argument("--patience", type=int, default=6)
     p.add_argument("--target-recall", type=float, default=0.995, help="Target recall for threshold selection (e.g., 0.995 for near-zero FN)")
     return p.parse_args()

@@ -1,11 +1,10 @@
 """
 event_roi_annotator.py
-event_roi_annotator.py
 
-Event-aligned ROI annotator.
+ROI annotator.
 
 Usage:
-    python tools\event_roi_annotator.py events.csv --videos-dir /path/to/videos --out event_rois.json
+    python detector\roi_annotator.py events.csv --videos-dir /path/to/videos --out event_rois.json
 
 """
 import csv
@@ -98,12 +97,111 @@ def load_events(csv_path: Path):
 
 
     # Sort events chronologically for each video
-        for v in events_by_video:
-            events_by_video[v] = sorted(events_by_video[v], key=lambda e: e["frame_index"])
+    for v in events_by_video:
+        events_by_video[v] = sorted(events_by_video[v], key=lambda e: e["frame_index"])
 
-        return events_by_video
+    return events_by_video
+    
 
+def sample_non_event_frames_uniform(video_path: Path,
+                                    event_frames: list,
+                                    sample_count: int = 30,
+                                    min_distance: int = 5,
+                                    seed: int = 42):
+    """
+    Sample up to `sample_count` frames uniformly across the video such that each
+    sampled frame is at least `min_distance` frames away from any event frame.
+    Returns a sorted list of chosen frame indices.
 
+    - Respects MIN_FRAME_SKIP (won't pick frames < MIN_FRAME_SKIP).
+    - Deterministic when seed is not None.
+    """
+    cap = cv2.VideoCapture(str(video_path))
+    if not cap.isOpened():
+        print(f"[WARN] Cannot open video for sampling: {video_path}")
+        return []
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
+    cap.release()
+
+    if total_frames <= 0:
+        return []
+
+    # Normalize event frames and build exclusion intervals
+    event_set = set(int(x) for x in event_frames if x is not None)
+    excluded = set()
+    for ef in event_set:
+        for d in range(ef - min_distance, ef + min_distance + 1):
+            if 0 <= d < total_frames:
+                excluded.add(d)
+
+    # Also exclude frames below MIN_FRAME_SKIP
+    for d in range(0, min(MIN_FRAME_SKIP, total_frames)):
+        excluded.add(d)
+
+    # Build list of valid frames
+    valid_frames = [f for f in range(total_frames) if f not in excluded]
+    if not valid_frames:
+        return []
+
+    # If there are fewer valid frames than requested, return a subset uniformly spaced
+    if len(valid_frames) <= sample_count:
+        # choose up to sample_count uniformly from valid_frames
+        if seed is not None:
+            rnd = random.Random(seed)
+            rnd.shuffle(valid_frames)
+            chosen = sorted(valid_frames[:sample_count])
+        else:
+            chosen = valid_frames[:sample_count]
+        return chosen
+
+    # Otherwise, divide the timeline into sample_count segments and pick one valid frame per segment
+    segment_size = total_frames / float(sample_count)
+    rnd = random.Random(seed) if seed is not None else random
+
+    chosen = []
+    for i in range(sample_count):
+        seg_start = int(math.floor(i * segment_size))
+        seg_end = int(math.floor((i + 1) * segment_size)) - 1
+        seg_end = max(seg_end, seg_start)
+        # Clamp to video bounds
+        seg_start = max(seg_start, MIN_FRAME_SKIP)
+        seg_end = min(seg_end, total_frames - 1)
+        # Collect valid candidates in this segment
+        candidates = [f for f in range(seg_start, seg_end + 1) if f not in excluded]
+        if not candidates:
+            # Try expanding outward within a small radius to find a nearby valid frame
+            radius = 1
+            found = None
+            while radius <= max(50, min_distance * 5):
+                a = max(MIN_FRAME_SKIP, seg_start - radius)
+                b = min(total_frames - 1, seg_end + radius)
+                candidates = [f for f in range(a, b + 1) if f not in excluded]
+                if candidates:
+                    found = candidates
+                    break
+                radius += 1
+            candidates = found or []
+        if candidates:
+            # pick randomly within candidates for this segment (deterministic if seed set)
+            if seed is not None:
+                pick = rnd.choice(candidates)
+            else:
+                pick = random.choice(candidates)
+            chosen.append(int(pick))
+        # if no candidate found even after expansion, skip this segment
+
+    # Deduplicate and, if we have fewer than requested due to skips, try to fill from remaining valid frames
+    chosen = sorted(set(chosen))
+    if len(chosen) < sample_count:
+        remaining = [f for f in valid_frames if f not in chosen]
+        if seed is not None:
+            rnd.shuffle(remaining)
+        else:
+            random.shuffle(remaining)
+        fill = remaining[:(sample_count - len(chosen))]
+        chosen = sorted(chosen + fill)
+
+    return sorted(chosen)
 
 # -------------------------
 # Event annotator
@@ -137,7 +235,7 @@ class EventAnnotator:
             "ues": {"x": 0, "y": 0, "w": self.canonical_w, "h": self.canonical_h}
         }
         self.active_box = "mouth"
-        self.visibility = "visible"
+        self.visibility = {"mouth": "visible", "ues": "visible"}
         self.bolus_mouth_present = {}
         self.bolus_ues_present = {}
 
@@ -307,42 +405,56 @@ class EventAnnotator:
 
     def _init_from_saved(self):
         """
-        Restore boxes, visibility, and bolus flags from saved JSON entry for the
-        current slot/frame. If no saved entry exists, do not write anything;
-        caller may apply in-memory defaults separately.
+        Restore boxes, per-ROI visibility, and bolus flags from saved JSON entry for the
+        current slot/frame. If no saved entry exists, default per-ROI visibility to 'visible'.
         """
         key = self.video_path.name
         cur_frame = int(self.sampled_indices[self.current_event_idx])
         found_saved = False
 
+        # default to visible for both ROIs for unannotated frames
+        self.visibility = {"mouth": "visible", "ues": "visible"}
+
         if key in self.rois:
             for e in self.rois.get(key, []):
-                # match both frame index and event id
-                if int(e.get("frame_index")) == cur_frame and str(e.get("event_id")) == str(self.events[self.current_event_idx]["event_id"]):
-                    if "mouth" in e:
-                        x, y, w, h = e["mouth"]
-                        self.boxes["mouth"].update({"x": int(x), "y": int(y), "w": int(w), "h": int(h)})
-                    if "ues" in e:
-                        x, y, w, h = e["ues"]
-                        self.boxes["ues"].update({"x": int(x), "y": int(y), "w": int(w), "h": int(h)})
-                    if "visibility" in e:
-                        self.visibility = e.get("visibility", self.visibility)
+                try:
+                    if int(e.get("frame_index")) == cur_frame and str(e.get("event_id")) == str(self.events[self.current_event_idx]["event_id"]):
+                        if "mouth" in e:
+                            x, y, w, h = e["mouth"]
+                            self.boxes["mouth"].update({"x": int(x), "y": int(y), "w": int(w), "h": int(h)})
+                        if "ues" in e:
+                            x, y, w, h = e["ues"]
+                            self.boxes["ues"].update({"x": int(x), "y": int(y), "w": int(w), "h": int(h)})
 
-                    # Load saved bolus flags (if present)
-                    self.bolus_mouth_present[self.current_event_idx] = bool(e.get("bolus_mouth_present", False))
-                    self.bolus_ues_present[self.current_event_idx]   = bool(e.get("bolus_ues_present", False))
+                        # New format: visibility stored as dict {"mouth": "...", "ues": "..."}
+                        vis = e.get("visibility", None)
+                        if isinstance(vis, dict):
+                            # validate values and fallback to visible if missing
+                            self.visibility["mouth"] = vis.get("mouth", "visible") if vis.get("mouth") in VISIBILITY_STATES else "visible"
+                            self.visibility["ues"]   = vis.get("ues", "visible")   if vis.get("ues") in VISIBILITY_STATES else "visible"
+                        else:
+                            # Backwards compatibility: old single-string visibility
+                            if isinstance(vis, str) and vis in VISIBILITY_STATES:
+                                self.visibility["mouth"] = vis
+                                self.visibility["ues"] = vis
 
-                    # Mark this slot as having a saved frame
-                    self.last_saved_frame[self.current_event_idx] = cur_frame
-                    found_saved = True
-                    break
+                        # Load saved bolus flags (if present)
+                        self.bolus_mouth_present[self.current_event_idx] = bool(e.get("bolus_mouth_present", False))
+                        self.bolus_ues_present[self.current_event_idx]   = bool(e.get("bolus_ues_present", False))
 
-        # If no saved entry was found, do not write to disk here.
-        # Caller may apply in-memory defaults if desired:
+                        # Mark this slot as having a saved frame
+                        self.last_saved_frame[self.current_event_idx] = cur_frame
+                        found_saved = True
+                        break
+                except Exception:
+                    continue
+
+        # If no saved entry was found, ensure bolus flags and visibility defaults exist
         if not found_saved:
-            # ensure keys exist so UI code can read them safely
             self.bolus_mouth_present.setdefault(self.current_event_idx, False)
             self.bolus_ues_present.setdefault(self.current_event_idx, False)
+            # visibility already set to visible above
+
 
 
     # -------------------------
@@ -393,17 +505,38 @@ class EventAnnotator:
     def draw(self):
         self.frame_display = self.frame.copy()
         overlay = self.frame_display.copy()
+
+        # If an ROI is marked not_visible, draw a darker overlay for that ROI region
         for name, color in (("mouth", (0, 255, 0)), ("ues", (255, 128, 0))):
             b = self.boxes[name]
-            cv2.rectangle(overlay, (b["x"], b["y"]), (b["x"] + b["w"], b["y"] + b["h"]), color, -1)
+            vis_state = self.visibility.get(name, "visible")
+            if vis_state == "not_visible":
+                # darker overlay to indicate not visible
+                cv2.rectangle(overlay, (b["x"], b["y"]), (b["x"] + b["w"], b["y"] + b["h"]), (0, 0, 0), -1)
+            elif vis_state == "partial":
+                # semi-transparent overlay with ROI color for partial
+                cv2.rectangle(overlay, (b["x"], b["y"]), (b["x"] + b["w"], b["y"] + b["h"]), color, -1)
+            else:
+                # visible: light colored overlay
+                cv2.rectangle(overlay, (b["x"], b["y"]), (b["x"] + b["w"], b["y"] + b["h"]), color, -1)
+
         alpha = 0.12
         cv2.addWeighted(overlay, alpha, self.frame_display, 1 - alpha, 0, self.frame_display)
+
         for name, color in (("mouth", (0, 255, 0)), ("ues", (255, 128, 0))):
             b = self.boxes[name]
             thickness = 3 if name == self.active_box else 2
-            cv2.rectangle(self.frame_display, (b["x"], b["y"]), (b["x"] + b["w"], b["y"] + b["h"]), color, thickness)
-            cv2.putText(self.frame_display, f"{name}", (b["x"], b["y"] - 6),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+            # If not_visible, draw dashed or thinner rectangle (here we use gray)
+            vis_state = self.visibility.get(name, "visible")
+            if vis_state == "not_visible":
+                rect_color = (100, 100, 100)
+            elif vis_state == "partial":
+                rect_color = (0, 200, 200)
+            else:
+                rect_color = color
+            cv2.rectangle(self.frame_display, (b["x"], b["y"]), (b["x"] + b["w"], b["y"] + b["h"]), rect_color, thickness)
+            cv2.putText(self.frame_display, f"{name} ({vis_state})", (b["x"], b["y"] - 6),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, rect_color, 2)
 
         cur_frame = self.sampled_indices[self.current_event_idx]
         ev = self.events[self.current_event_idx]
@@ -411,34 +544,22 @@ class EventAnnotator:
         mouth_flag = self.bolus_mouth_present.get(slot, False)
         ues_flag = self.bolus_ues_present.get(slot, False)
 
-        # Color-coded indicators
-        mouth_color = (0, 255, 0) # green
-        ues_color = (255, 0, 0) # blue
-
-        bolus_txt = f"Mouth bolus: {'YES' if mouth_flag else 'NO'}    |     UES bolus: {'YES' if ues_flag else 'NO'}"
-
-        txt = f"{self.video_path.name}  event={ev['event_id']}  frame={cur_frame}/{self.total_frames-1}  vis={self.visibility}  active={self.active_box}"
+        txt = f"{self.video_path.name}  event={ev['event_id']}  frame={cur_frame}/{self.total_frames-1}  active={self.active_box}"
         cv2.putText(self.frame_display, txt, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255), 2)
-        slot = self.current_event_idx
-        mouth_flag = self.bolus_mouth_present.get(slot, False)
-        ues_flag   = self.bolus_ues_present.get(slot, False)
-
-        # Colors
-        mouth_color = (0, 255, 0)   # green
-        ues_color   = (255, 0, 0)   # blue
 
         # Draw color-coded bolus indicators
         cv2.putText(self.frame_display,
-            f"Mouth bolus: {'YES' if mouth_flag else 'NO'}",
-            (10, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.7, mouth_color, 3)
+            f"Mouth bolus: {'YES' if mouth_flag else 'NO'}    vis={self.visibility.get('mouth','visible')}",
+            (10, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,0), 3)
 
         cv2.putText(self.frame_display,
-            f"UES bolus: {'YES' if ues_flag else 'NO'}",
-            (10, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.7, ues_color, 3)
+            f"UES bolus: {'YES' if ues_flag else 'NO'}    vis={self.visibility.get('ues','visible')}",
+            (10, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,0,0), 3)
 
-        cv2.putText(self.frame_display, "Tab/1/2 switch | +/- resize | v visibility | r reject | u undo | p saved | b back | < > step | B bolus | n next | N next video | s save | q quit",
+        cv2.putText(self.frame_display, "Tab/1/2 switch | +/- resize | v toggle active ROI vis | V toggle both ROIs | r reject | u undo | p saved | b back | < > step | B bolus | n next | N next video | s save | q quit",
                     (10, 105), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200,200,200), 1)
         cv2.imshow(self.window_name, self.frame_display)
+
 
     def _apply_event_defaults(self, event_id: str, slot: int):
         # Normalize event id
@@ -491,18 +612,23 @@ class EventAnnotator:
             box["x"] = int(cx - box["w"] // 2)
             box["y"] = int(cy - box["h"] // 2)
             self._clamp_box(box)
-
+            
         entry = {
             "event_id": str(self.events[self.current_event_idx]["event_id"]),
             "frame_index": int(cur_frame),
             "mouth": [int(mouth_box["x"]), int(mouth_box["y"]), int(mouth_box["w"]), int(mouth_box["h"])],
             "ues": [int(ues_box["x"]), int(ues_box["y"]), int(ues_box["w"]), int(ues_box["h"])],
-            "visibility": self.visibility,
+            # Save per-ROI visibility as a dict for future reads
+            "visibility": {
+                "mouth": str(self.visibility.get("mouth", "visible")),
+                "ues":   str(self.visibility.get("ues", "visible"))
+            },
             "bolus_mouth_present": bool(self.bolus_mouth_present.get(self.current_event_idx, False)),
             "bolus_ues_present":   bool(self.bolus_ues_present.get(self.current_event_idx, False)),
             "annotator": "annotator",
             "saved_at": datetime.utcnow().isoformat() + "Z"
         }
+
 
         entries = self.rois.get(key, [])
         replaced = False
@@ -702,11 +828,33 @@ class EventAnnotator:
                     print("[INFO] Already at first event")
 
             elif key == ord('v'):
-                idx = VISIBILITY_STATES.index(self.visibility)
+                # Toggle visibility for the active ROI only
+                cur = self.active_box
+                cur_state = self.visibility.get(cur, "visible")
+                idx = VISIBILITY_STATES.index(cur_state)
                 idx = (idx + 1) % len(VISIBILITY_STATES)
-                self.visibility = VISIBILITY_STATES[idx]
-                print(f"[INFO] visibility -> {self.visibility}")
+                self.visibility[cur] = VISIBILITY_STATES[idx]
+                print(f"[INFO] visibility {cur} -> {self.visibility[cur]}")
                 self.draw()
+
+            elif key == ord('V'):
+                # Toggle both ROIs together (advance their states in lockstep)
+                # If both are same state, advance both; otherwise set both to 'visible'
+                m_state = self.visibility.get("mouth", "visible")
+                u_state = self.visibility.get("ues", "visible")
+                if m_state == u_state:
+                    idx = VISIBILITY_STATES.index(m_state)
+                    idx = (idx + 1) % len(VISIBILITY_STATES)
+                    new_state = VISIBILITY_STATES[idx]
+                    self.visibility["mouth"] = new_state
+                    self.visibility["ues"] = new_state
+                else:
+                    # if mixed, reset both to visible
+                    self.visibility["mouth"] = "visible"
+                    self.visibility["ues"] = "visible"
+                print(f"[INFO] visibility mouth -> {self.visibility['mouth']}, ues -> {self.visibility['ues']}")
+                self.draw()
+
 
             elif key == ord('S') or key == ord('s'):
                 self.save_current_event()
@@ -745,46 +893,59 @@ def main():
         return
     events_by_video = load_events(EVENTS_CSV)
     if not events_by_video:
-        print("[ERROR] No events loaded. Check CSV format and columns (video,event_id,frame_index).")
+        print("[ERROR] No events loaded. Check CSV format and columns (video,before_onset,touch_ues,leave_ues).")
         return
 
     rois = load_json(OUT_JSON)
-    # print("[DEBUG] loaded rois keys:", list(rois.keys())[:20])
 
     videos = sorted(events_by_video.keys())
     for vname in videos:
-        # resolve video path
         vpath = Path(vname)
         if not vpath.exists():
             candidate = VIDEOS_DIR / vname
             if candidate.exists():
                 vpath = candidate
             else:
-                found = None
-                for ext in (".mp4", ".avi", ".mov", ".mkv"):
-                    cand = VIDEOS_DIR / (vname + ext)
-                    if cand.exists():
-                        found = cand
-                        break
-                if found:
-                    vpath = found
-                else:
-                    csv_parent = EVENTS_CSV.parent
-                    cand2 = csv_parent / vname
-                    if cand2.exists():
-                        vpath = cand2
-                    else:
-                        print(f"[WARN] Video not found for {vname}, skipping.")
-                        continue
+                print(f"[WARN] Video file not found for '{vname}'. Tried '{vname}' and '{candidate}'. Skipping.")
+                continue
 
-        evs = events_by_video[vname]
-        print(f"\nAnnotating video {vpath} with {len(evs)} events -> output {OUT_JSON}")
-        # print("[DEBUG] rois for video:", rois.get(vname))
-        annot = EventAnnotator(vpath, evs, rois, OUT_JSON, canonical_w=DEFAULT_WIDTH, canonical_h=DEFAULT_HEIGHT)
-        annot.run()
+        real_events = events_by_video.get(vname, [])
+        event_frame_indices = [int(e["frame_index"]) for e in real_events]
+
+        # Sample uniformly with minimum distance 5 frames from any event
+        non_event_samples = sample_non_event_frames_uniform(vpath,
+                                                            event_frame_indices,
+                                                            sample_count=30,
+                                                            min_distance=5,
+                                                            seed=42)
+
+        synthetic_events = []
+        for f in non_event_samples:
+            synthetic_events.append({
+                "video": vname,
+                "event_id": "non_event",
+                "frame_index": int(f),
+                "meta": {}
+            })
+
+        # Merge and sort by frame_index
+        combined_events = sorted(real_events + synthetic_events, key=lambda e: int(e["frame_index"]))
+
+        print(f"[INFO] Video: {vname}  real_events={len(real_events)}  non_event_samples={len(synthetic_events)}  total_slots={len(combined_events)}")
+
+        try:
+            annot = EventAnnotator(video_path=vpath, events=combined_events, rois_dict=rois, out_path=OUT_JSON)
+            annot.run()
+        except Exception as ex:
+            print(f"[ERROR] Failed to annotate {vname}: {ex}")
+            continue
+
+    try:
         save_json(OUT_JSON, rois)
+        print(f"[INFO] Saved ROIs to {OUT_JSON}")
+    except Exception as ex:
+        print(f"[WARN] Could not save ROIs: {ex}")
 
-    print("\nAll done. ROIs saved to", OUT_JSON)
 
 if __name__ == "__main__":
     main()
