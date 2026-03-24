@@ -3,7 +3,7 @@
 Event-aligned ROI annotator.
 
 Usage:
-    python tools\event_roi_annotator.py events.csv --videos-dir /path/to/videos --out event_rois.json
+    python detector\roi_annotator.py events.csv --videos-dir /path/to/videos --out rois.json
 """
 import csv
 import cv2
@@ -22,7 +22,7 @@ REPO_ROOT = SCRIPT_DIR.parent
 
 EVENTS_CSV = Path(r"C:\Users\Connor Lab\Desktop\VFML\event_csvs\cleaned_events.csv")
 VIDEOS_DIR = Path(r"\\research.drive.wisc.edu\npconnor\ADStudy\VF AD Blinded\Early Tongue Training")
-OUT_JSON = REPO_ROOT / "detector/event_rois.json"
+OUT_JSON = REPO_ROOT / "detector/rois.json"
 
 print("EVENTS_CSV:", EVENTS_CSV, "exists:", EVENTS_CSV.exists(), "is_file:", EVENTS_CSV.is_file())
 print("VIDEOS_DIR:", VIDEOS_DIR, "exists:", VIDEOS_DIR.exists(), "is_dir:", VIDEOS_DIR.is_dir())
